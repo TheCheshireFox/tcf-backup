@@ -235,7 +235,7 @@ public class Filesystem : IFilesystem, IDisposable
 
     public void CopyFile(string source, string destination, bool overwrite) => Unix.CopyFile(source, destination, overwrite);
 
-    public void CopyDirectory(string source, string destination) => throw new NotImplementedException();
+    public void CopyDirectory(string source, string destination, bool recursive) => Unix.CopyDirectory(source, destination, recursive);
 
     public string[] ReadAllLines(string path) => File.ReadAllLines(path);
 

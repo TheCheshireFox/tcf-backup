@@ -16,7 +16,7 @@ public interface IFilesystem
     void Delete(string path);
     void Move(string source, string destination, bool overwrite);
     void CopyFile(string source, string destination, bool overwrite);
-    void CopyDirectory(string source, string destination);
+    void CopyDirectory(string source, string destination, bool recursive);
 
     string[] ReadAllLines(string path);
     string ReadAllText(string path);
