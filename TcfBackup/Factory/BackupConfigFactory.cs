@@ -60,19 +60,19 @@ public class BackupConfigFactory : IFactory
             return GpgEncryptionManager.CreateWithSignature(_logger, _fs, opts.Signature, opts.Password);
         }
 
-        throw new NotImplementedException();
+        throw new NotSupportedException("Specified gpg configuration not supported");
     }
 
     private IEncryptionManager CreateOpensslEncryptionManager(OpensslEncryptionActionOptions opts)
     {
         if (string.IsNullOrEmpty(opts.KeyFile) && string.IsNullOrEmpty(opts.Password))
         {
-            throw new FormatException("No keyfile or password specified for encryption manager.");
+            throw new FormatException("No keyfile or password specified for encryption manager");
         }
 
         if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.Password))
         {
-            throw new FormatException("Both the keyfile and password are specified. You can choose only one.");
+            throw new FormatException("Both the keyfile and password are specified. You can choose only one");
         }
 
         if (!string.IsNullOrEmpty(opts.KeyFile))
@@ -85,7 +85,7 @@ public class BackupConfigFactory : IFactory
             return OpensslEncryptionManager.CreateWithPassword(_logger, opts.Password, opts.Cipher, opts.Salt, opts.Pbkdf2, opts.Iterations);
         }
 
-        throw new NotImplementedException();
+        throw new NotSupportedException("Specified openssl configuration not supported");
     }
 
     private IAction CreateCompressAction(CompressActionOptions opts)
@@ -99,10 +99,10 @@ public class BackupConfigFactory : IFactory
             Configuration.Action.CompressAlgorithm.BZip2 => CompressAlgorithm.BZip2,
             Configuration.Action.CompressAlgorithm.LZip => CompressAlgorithm.LZip,
             Configuration.Action.CompressAlgorithm.ZStd => CompressAlgorithm.ZStd,
-            _ => throw new NotImplementedException()
+            _ => throw new NotSupportedException($"Compression algorithm {opts.Algorithm} not supported")
         };
 
-        return new CompressAction(_logger, _compressionManager, _fs, algo, opts.Name, opts.ChangeDir, opts.Transform, opts.FollowSymlinks);
+        return new CompressAction(_logger, _compressionManager, _fs, algo, opts.Name, opts.ChangeDir, opts.FollowSymlinks);
     }
 
     private IAction CreateEncryptAction(EncryptionActionOptions opts)
@@ -111,7 +111,7 @@ public class BackupConfigFactory : IFactory
         {
             OpensslEncryptionActionOptions opensslOpts => CreateOpensslEncryptionManager(opensslOpts),
             GpgEncryptionActionOptions gpgOpts => CreateGpgEncryptionManager(gpgOpts),
-            _ => throw new NotImplementedException()
+            _ => throw new NotSupportedException($"Encryption action with type {opts.GetType()} not supported")
         };
 
         return new EncryptAction(_logger, _fs, encryptionManager);

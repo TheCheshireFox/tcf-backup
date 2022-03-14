@@ -18,5 +18,4 @@ public class CompressActionOptions : ActionOptions
     public bool FollowSymlinks { get; set; }
     public string ChangeDir { get; set; } = string.Empty;
     public string? Name { get; set; }
-    public string? Transform { get; set; }
 }

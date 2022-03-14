@@ -67,7 +67,7 @@ public class FilterActionTest
     [TestCase(typeof(IncludeExcludeTestSet))]
     public void FilterBy(Type testSetType)
     {
-        var testSet = (ITestSet)Activator.CreateInstance(testSetType);
+        var testSet = (ITestSet)Activator.CreateInstance(testSetType)!;
 
         var logger = new LoggerConfiguration().CreateLogger();
 
