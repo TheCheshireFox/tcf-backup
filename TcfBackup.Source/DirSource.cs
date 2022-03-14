@@ -14,7 +14,7 @@ namespace TcfBackup.Source
         {
             _logger = logger.ForContextShort<DirSource>();
             _filesystem = filesystem;
-            
+
             if (!_filesystem.DirectoryExists(dir))
             {
                 throw new DirectoryNotFoundException(dir);
@@ -33,7 +33,6 @@ namespace TcfBackup.Source
 
         public void Cleanup()
         {
-            
         }
     }
 }

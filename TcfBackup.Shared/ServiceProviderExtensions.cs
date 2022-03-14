@@ -18,11 +18,11 @@ namespace TcfBackup.Shared
                 {
                     return null;
                 }
-                
+
                 createdObjects.Add(type, obj);
                 return obj;
             }
-            
+
             var constructorParams = constructorInfo.GetParameters();
             args = new object[constructorParams.Length];
 
@@ -39,24 +39,24 @@ namespace TcfBackup.Shared
 
             return true;
         }
-        
+
         public static T CreateService<T>(this IServiceProvider provider)
         {
             var createdObjects = new Dictionary<Type, object>();
-            
+
             foreach (var constructor in typeof(T).GetConstructors().OrderBy(c => c.GetParameters().Length))
             {
                 if (constructor.GetParameters().Length == 0)
                 {
                     return Activator.CreateInstance<T>();
                 }
-                
+
                 if (ResolveConstructor(provider, constructor, createdObjects, out var args))
                 {
                     return (T?)Activator.CreateInstance(typeof(T), args) ?? throw new InvalidOperationException();
                 }
             }
-            
+
             throw new InvalidOperationException($"Unable to create service of type {typeof(T)}");
         }
     }

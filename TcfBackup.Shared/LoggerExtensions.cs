@@ -16,7 +16,7 @@ namespace TcfBackup.Shared
                 }
             }, TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously);
         }
-        
+
         public static ProcessRedirects GetProcessRedirects(this ILogger logger)
         {
             return (input, output, error) => Task.WaitAll(LogReader(output, logger.Information), LogReader(error, logger.Error));

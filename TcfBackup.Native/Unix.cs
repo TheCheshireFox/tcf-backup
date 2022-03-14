@@ -13,7 +13,7 @@ public static class Unix
         Directory,
         Symlink
     }
-    
+
     public struct FileOwner
     {
         public long UserId;
@@ -21,7 +21,7 @@ public static class Unix
         public string UserName;
         public string GroupName;
     }
-    
+
     public struct FileInfo
     {
         public FileOwner Owner;
@@ -61,7 +61,7 @@ public static class Unix
             }
         };
     }
-    
+
     public static (long, long) SplitDeviceNumber(long deviceNumber)
     {
         var major = (((ulong)deviceNumber >> 32) & 0xfffff000) | (((ulong)deviceNumber >> 8) & 0xfff);
@@ -117,7 +117,7 @@ public static class Unix
                 Directory.CreateDirectory(dst);
                 CopyPermissions(src, dst);
             }
-            
+
             foreach (var dir in Directory.EnumerateDirectories(src, "*", SearchOption.TopDirectoryOnly))
             {
                 var dstDir = Path.Join(dst, dir[src.Length..]);
@@ -137,7 +137,7 @@ public static class Unix
                 {
                     continue;
                 }
-                
+
                 foreach (var subDir in Directory.EnumerateDirectories(dir, "*", SearchOption.TopDirectoryOnly))
                 {
                     CopyDirectoryInternal(subDir, Path.Join(dst, subDir[src.Length..]), recursive);

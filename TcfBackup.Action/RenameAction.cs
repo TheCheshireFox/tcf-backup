@@ -14,7 +14,7 @@ namespace TcfBackup.Action
 {
     public class RenameAction : IAction
     {
-        private static readonly Dictionary<string, Func<string, string?, string>> s_templateReplacers = new ()
+        private static readonly Dictionary<string, Func<string, string?, string>> s_templateReplacers = new()
         {
             { "filename", FormatFilename },
             { "filename_without_ext", FormatFilenameWithoutExt },
@@ -31,14 +31,15 @@ namespace TcfBackup.Action
         private static string FormatFilename(string filename, string? format) => ApplyFormat(filename, format);
         private static string FormatFilenameWithoutExt(string filename, string? format) => ApplyFormat(Path.GetFileNameWithoutExtension(filename), format);
         private static string FormatExtension(string filename, string? format) => ApplyFormat(PathUtils.GetFullExtension(filename)[1..], format);
+
         private static string FormatDate(string filename, string? format) => string.IsNullOrEmpty(format)
             ? DateTime.Now.ToString("s", CultureInfo.InvariantCulture)
             : DateTime.Now.ToString(format, CultureInfo.InvariantCulture);
-        
+
         private static (string? Placeholder, string? Format) SplitPlaceholder(string placeholder)
         {
             var index = placeholder.IndexOf(':');
-            
+
             switch (index)
             {
                 case -1:
@@ -56,11 +57,11 @@ namespace TcfBackup.Action
                 ? (placeholder, null)
                 : (placeholder[..index], placeholder[(index + 1)..]);
         }
-        
+
         private static string Format(string template, string filename)
         {
             var replacements = new List<(int Start, int Length, string Value)>();
-            
+
             var index = -1;
             var closeIndex = -1;
             while ((index = template.IndexOf('{', index + 1)) >= 0)
@@ -78,7 +79,7 @@ namespace TcfBackup.Action
                     {
                         break;
                     }
-                    
+
                     if (closeIndex > 0 && template[closeIndex - 1] == '\\')
                     {
                         continue;
@@ -116,7 +117,7 @@ namespace TcfBackup.Action
             {
                 sb.Append(template[(closeIndex + 1)..]);
             }
-            
+
             var result = sb.ToString();
             if (result.Contains(Path.DirectorySeparatorChar))
             {
@@ -125,7 +126,7 @@ namespace TcfBackup.Action
 
             return result;
         }
-        
+
         public RenameAction(ILogger logger, IFilesystem fs, string template, bool overwrite)
         {
             _logger = logger.ForContextShort<RenameAction>();
@@ -137,7 +138,7 @@ namespace TcfBackup.Action
         public ISource Apply(ISource source)
         {
             _logger.Information("Renaming files...");
-            
+
             var renames = source.GetFiles().ToDictionary(f => f, f => Path.Combine(Path.GetDirectoryName(f.Path) ?? "/", Format(_template, Path.GetFileName(f.Path))));
             foreach (var (src, dst) in renames)
             {
@@ -145,7 +146,7 @@ namespace TcfBackup.Action
                 {
                     continue;
                 }
-                
+
                 src.Move(dst, _overwrite);
             }
 

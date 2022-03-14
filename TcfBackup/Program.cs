@@ -24,25 +24,30 @@ namespace TcfBackup
 
         [Option('d', "debug", Required = false, SetName = "Logging")]
         public bool Debug { get; set; } = false;
-        
+
 #if DEBUG
         [Option("wait-debugger", Hidden = true, Required = false)]
         public bool WaitDebugger { get; set; }
 #endif
     }
-    
+
     [Verb("backup", HelpText = "Perform backups")]
     public class BackupOptions : GenericOptions
     {
         [Value(0, MetaName = "path", HelpText = "Configuration file", Required = true)]
         public string? ConfigurationFile { get; set; }
     }
-    
+
     [Verb("restore", HelpText = "Restore managed backups")]
     public class RestoreOptions : GenericOptions
     {
         [Value(0, MetaName = "path", HelpText = "Configuration file", Required = true)]
         public string? ConfigurationFile { get; set; }
+    }
+
+    [Verb("google-auth", HelpText = "Perform google authentication")]
+    public class GoogleAuthOptions : GenericOptions
+    {
     }
 
     public class LoggerOptions
@@ -73,13 +78,13 @@ namespace TcfBackup
             }
 #endif
         }
-        
+
         private static void ParsedBackup(BackupOptions opts)
         {
             WaitDebugger(opts);
 
             var config = ConfigurationFactory.CreateBackupConfiguration(opts);
-            
+
             var di = new ServiceCollection()
                 .Configure<GlobalOptions>(config.GetSection("global"))
                 .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
@@ -95,7 +100,7 @@ namespace TcfBackup
             var dp = di.BuildServiceProvider();
 
             AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
-            
+
             try
             {
                 var manager = dp.CreateService<BackupManager>();
@@ -112,14 +117,35 @@ namespace TcfBackup
             WaitDebugger(opts);
         }
 
+        private static void ParsedGoogleAuth(GoogleAuthOptions opts)
+        {
+            var di = new ServiceCollection()
+                .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
+                .AddTransientFromFactory<LoggerFactory, ILogger>()
+                .AddSingletonFromFactory<FilesystemFactory, IFilesystem>()
+                .AddSingleton<GDriveAdapter>();
+
+            var dp = di.BuildServiceProvider();
+
+            AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
+
+            try
+            {
+                dp.GetService<GDriveAdapter>()!.Authorize();
+            }
+            catch (Exception e)
+            {
+                dp.GetService<ILogger>()!.Fatal("{exc}", e);
+            }
+        }
+
         public static void Main(string[] args)
         {
-            var node = new FilesystemNode(null, "/", FilesystemNodeType.Directory);
-
             Parser.Default
                 .ParseArguments<BackupOptions, RestoreOptions>(args)
                 .WithParsed<BackupOptions>(ParsedBackup)
-                .WithParsed<RestoreOptions>(ParsedRestore);
+                .WithParsed<RestoreOptions>(ParsedRestore)
+                .WithParsed<GoogleAuthOptions>(ParsedGoogleAuth);
         }
     }
 }

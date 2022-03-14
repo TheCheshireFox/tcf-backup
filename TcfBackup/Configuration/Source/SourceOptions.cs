@@ -7,7 +7,7 @@ namespace TcfBackup.Configuration.Source
         Directory,
         Lxd
     }
-    
+
     public class SourceOptions
     {
         public SourceType Type { get; set; }

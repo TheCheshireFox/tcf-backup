@@ -23,13 +23,13 @@ namespace TcfBackup.Managers
 
         private static IDictionary<string, string>? AlgorithmToEnv(CompressAlgorithm algorithm) => algorithm switch
         {
-            CompressAlgorithm.Gzip => new Dictionary<string, string>{{ "GZIP", "-9" }},
-            CompressAlgorithm.BZip2 => new Dictionary<string, string>{{ "BZIP", "-9" }},
-            CompressAlgorithm.Xz => new Dictionary<string, string>{{ "XZ_OPT", "-9" }},
-            CompressAlgorithm.Lzma => new Dictionary<string, string>{{ "XZ_OPT", "-9" }},
-            CompressAlgorithm.LZip => new Dictionary<string, string>{{ "XZ_OPT", "-9" }},
+            CompressAlgorithm.Gzip => new Dictionary<string, string> { { "GZIP", "-9" } },
+            CompressAlgorithm.BZip2 => new Dictionary<string, string> { { "BZIP", "-9" } },
+            CompressAlgorithm.Xz => new Dictionary<string, string> { { "XZ_OPT", "-9" } },
+            CompressAlgorithm.Lzma => new Dictionary<string, string> { { "XZ_OPT", "-9" } },
+            CompressAlgorithm.LZip => new Dictionary<string, string> { { "XZ_OPT", "-9" } },
             CompressAlgorithm.Lzop => null,
-            CompressAlgorithm.ZStd => new Dictionary<string, string>{{ "ZSTD_CLEVEL", "19" }},
+            CompressAlgorithm.ZStd => new Dictionary<string, string> { { "ZSTD_CLEVEL", "19" } },
             _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, null)
         };
 
@@ -48,19 +48,19 @@ namespace TcfBackup.Managers
                 File.WriteAllLines(filesFile, string.IsNullOrEmpty(changeDir) ? files : files.Select(f => PathUtils.GetRelativePath(changeDir, f)));
 
                 var args = new List<string>();
-                
+
                 if (!string.IsNullOrEmpty(changeDir))
                 {
                     args.Add($"-C \"{changeDir}\"");
                 }
-                
+
                 args.Add($"-T \"{filesFile}\"");
 
                 if (followSymlinks)
                 {
                     args.Add("-h");
                 }
-                
+
                 args.Add(AlgorithmToSwitch(algorithm));
                 args.Add($"-cvf \"{archive}\"");
 
@@ -68,7 +68,7 @@ namespace TcfBackup.Managers
                 {
                     //args.Add(".");
                 }
-                
+
                 Subprocess.Exec("tar", string.Join(' ', args), _logger.GetProcessRedirects(), AlgorithmToEnv(algorithm), cancellationToken);
             }
             finally
@@ -82,7 +82,7 @@ namespace TcfBackup.Managers
             var files = new List<string>();
 
             _filesystem.CreateDirectory(destination);
-            
+
             void ProcessRedirects(StreamWriter input, StreamReader output, StreamReader error)
             {
                 var outputTask = Task.Factory.StartNew(() =>
@@ -97,7 +97,7 @@ namespace TcfBackup.Managers
                         }
                     }
                 }, TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously);
-                
+
                 var errorTask = Task.Factory.StartNew(() =>
                 {
                     while (!error.EndOfStream)

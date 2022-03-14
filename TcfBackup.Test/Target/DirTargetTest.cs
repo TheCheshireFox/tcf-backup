@@ -11,7 +11,7 @@ namespace TcfBackup.Test.Target
     public class DirTargetTest
     {
         private const string Directory = "/dev/null";
-        
+
         [Test]
         public void CreatesTargetDirectory()
         {
@@ -19,7 +19,7 @@ namespace TcfBackup.Test.Target
             fsMock.Setup(fs => fs.CreateDirectory(Directory));
 
             _ = new DirTarget(fsMock.Object, Directory, false);
-            
+
             fsMock.VerifyAll();
         }
 
@@ -27,7 +27,7 @@ namespace TcfBackup.Test.Target
         public void CopyEachFileToDirectory()
         {
             var files = new[] { "/dev/null/file1", "/dev/null/file2", "/dev/null/file3" };
-            
+
             var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
             fsMock.Setup(fs => fs.CreateDirectory(Directory));
             foreach (var file in files)
@@ -37,9 +37,9 @@ namespace TcfBackup.Test.Target
 
             var sourceMock = new Mock<ISource>();
             sourceMock.Setup(s => s.GetFiles()).Returns(files.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
-            
+
             new DirTarget(fsMock.Object, Directory, true).Apply(sourceMock.Object);
-            
+
             fsMock.VerifyAll();
             sourceMock.VerifyAll();
         }

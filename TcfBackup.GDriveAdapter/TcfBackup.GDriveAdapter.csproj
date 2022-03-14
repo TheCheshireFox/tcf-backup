@@ -14,16 +14,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2453" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2453"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj" />
-      <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
+        <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj"/>
+        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="credentials.json" />
+        <EmbeddedResource Include="credentials.json"/>
     </ItemGroup>
 
 </Project>

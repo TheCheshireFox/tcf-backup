@@ -13,7 +13,7 @@ namespace TcfBackup.Target
             filesystem.CreateDirectory(_dir = dir);
             _overwrite = overwrite;
         }
-        
+
         public void Apply(ISource source)
         {
             foreach (var file in source.GetFiles())

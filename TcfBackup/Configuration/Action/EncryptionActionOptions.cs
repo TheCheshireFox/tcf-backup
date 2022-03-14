@@ -6,7 +6,7 @@ namespace TcfBackup.Configuration.Action
         Openssl,
         Gpg
     }
-    
+
     public class EncryptionActionOptions : ActionOptions
     {
         public EncryptionEngine Engine { get; set; }

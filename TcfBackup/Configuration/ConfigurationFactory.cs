@@ -25,7 +25,7 @@ namespace TcfBackup.Configuration
 
             return configurationFile;
         }
-        
+
         private static IConfiguration ReadConfiguration(string? configurationFile)
         {
             if (configurationFile == null)
@@ -34,7 +34,7 @@ namespace TcfBackup.Configuration
             }
 
             configurationFile = FindConfigurationFile(configurationFile);
-            
+
             switch (PathUtils.GetFullExtension(configurationFile))
             {
                 case ".yaml":

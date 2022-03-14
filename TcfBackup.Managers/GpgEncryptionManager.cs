@@ -27,10 +27,10 @@ namespace TcfBackup.Managers
             {
                 throw new FileNotFoundException($"File or key {keyfile} not found");
             }
-            
+
             using var keyStream = fs.OpenRead(keyfile);
             using var keyFileData = new GpgmeStreamData(keyStream);
-            
+
             var importResult = context.KeyStore.Import(keyFileData);
             if (importResult.Imports == null)
             {
@@ -44,14 +44,14 @@ namespace TcfBackup.Managers
 
             return context.KeyStore.GetKey(importResult.Imports.Fpr, false);
         }
-        
+
         private static Key KeyFromStore(IFilesystem fs, Context context, string signature)
         {
             return context.KeyStore
                 .GetKeyList("", false)
                 .FirstOrDefault(k => k.Fingerprint == signature) ?? throw new Libgpgme.KeyNotFoundException($"Key with signature {signature} not found.");
         }
-        
+
         private GpgContext PrepareContext()
         {
             var context = new Context();
@@ -70,16 +70,16 @@ namespace TcfBackup.Managers
                     return PassphraseResult.Success;
                 });
             }
-            
+
             return new GpgContext(context, _getKey(context));
         }
 
         public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFilesystem fs, string keyFile, string? password = null)
             => new(logger, fs, ctx => KeyFromKeyFile(fs, ctx, keyFile), password);
-        
+
         public static GpgEncryptionManager CreateWithSignature(ILogger logger, IFilesystem fs, string signature, string? password = null)
             => new(logger, fs, ctx => KeyFromStore(fs, ctx, signature), password);
-        
+
         private GpgEncryptionManager(ILogger logger, IFilesystem fs, Func<Context, Key> getKey, string? password)
         {
             _logger = logger.ForContextShort<GpgEncryptionManager>();
@@ -87,7 +87,7 @@ namespace TcfBackup.Managers
             _getKey = getKey;
             _password = password;
         }
-        
+
         public void Encrypt(string src, string dst)
         {
             using var gpgContext = PrepareContext();
@@ -105,7 +105,7 @@ namespace TcfBackup.Managers
         public void Decrypt(string src, string dst)
         {
             using var gpgContext = PrepareContext();
-            
+
             using var srcRawStream = _fs.OpenRead(src);
             using var srcStream = new GpgmeStreamData(srcRawStream);
             using var dstRawStream = _fs.OpenWrite(dst);

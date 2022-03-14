@@ -18,7 +18,7 @@ namespace TcfBackup.Factory
 
             return cfg.Get(typeSelector);
         }
-        
+
         public static object Get(this IConfiguration configuration, Func<IConfiguration, Type> typeSelector)
         {
             var type = typeSelector(configuration);

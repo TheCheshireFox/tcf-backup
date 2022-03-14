@@ -21,7 +21,7 @@ namespace TcfBackup
                 source.Cleanup();
             }
         }
-        
+
         public BackupManager(IFactory factory)
         {
             _factory = factory;

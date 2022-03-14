@@ -35,7 +35,7 @@ namespace TcfBackup.Action
                     {
                         dst = Path.Combine(targetDir, StringExtensions.GenerateRandomString(8) + PathUtils.GetFullExtension(file.Path));
                     }
-                    
+
                     encryptedFiles.Add(file.Path, dst);
                 }
 
@@ -46,7 +46,7 @@ namespace TcfBackup.Action
                 }
 
                 _logger.Information("Encryption complete");
-                
+
                 return FilesListSource.CreateMutable(_filesystem, encryptedFiles.Values);
             }
             catch (Exception)

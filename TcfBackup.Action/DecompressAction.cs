@@ -8,13 +8,13 @@ namespace TcfBackup.Action
     {
         private readonly IFilesystem _filesystem;
         private readonly ICompressionManager _compressionManager;
-        
+
         public DecompressAction(ICompressionManager compressionManager, IFilesystem filesystem)
         {
             _compressionManager = compressionManager;
             _filesystem = filesystem;
         }
-        
+
         public ISource Apply(ISource source)
         {
             var tmpDirSource = new TempDirectoryFileListSource(_filesystem, _filesystem.CreateTempDirectory());

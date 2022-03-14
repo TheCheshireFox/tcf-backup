@@ -45,7 +45,7 @@ namespace TcfBackup.Source
 
             _logger.Information("Backup containers: {containers}", _containers);
         }
-        
+
         public IEnumerable<IFile> GetFiles() => _filesystem
             .GetFiles(_backupDirectory ?? throw new InvalidOperationException("Unable to get backup archives: No backup was performed"))
             .Select(f => (IFile)new MutableFile(_filesystem, f));
@@ -60,9 +60,9 @@ namespace TcfBackup.Source
                 foreach (var container in _containers)
                 {
                     _logger.Information("Creating snapshot for container {container}", container);
-                    
+
                     _lxdManager.BackupContainer(container, Path.Combine(_backupDirectory, container + ".tar.gz"));
-                    
+
                     _logger.Information("Snapshot created");
                 }
             }

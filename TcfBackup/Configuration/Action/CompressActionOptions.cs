@@ -13,7 +13,7 @@ namespace TcfBackup.Configuration.Action
         ZStd,
         Gzip
     }
-    
+
     public class CompressActionOptions : ActionOptions
     {
         public CompressAlgorithm Algorithm { get; set; }

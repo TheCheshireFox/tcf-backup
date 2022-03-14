@@ -19,16 +19,16 @@ namespace TcfBackup.Target
             _fs = fs;
             _directoryId = path != null ? _gDriveAdapter.CreateDirectory(path) : null;
         }
-        
+
         public void Apply(ISource source)
         {
             foreach (var file in source.GetFiles())
             {
                 _logger.Information("Uploading {path}...", file.Path);
-                
+
                 using var stream = _fs.OpenRead(file.Path);
                 _gDriveAdapter.UploadFile(stream, Path.GetFileName(file.Path), _directoryId);
-                
+
                 _logger.Information("Complete");
             }
         }

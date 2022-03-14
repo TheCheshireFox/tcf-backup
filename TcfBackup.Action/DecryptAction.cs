@@ -11,7 +11,7 @@ namespace TcfBackup.Action
     {
         private readonly IFilesystem _filesystem;
         private readonly IEncryptionManager _encryptionManager;
-        
+
         public DecryptAction(IFilesystem filesystem, IEncryptionManager encryptionManager)
         {
             _filesystem = filesystem;
