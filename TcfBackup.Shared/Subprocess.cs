@@ -38,6 +38,7 @@ namespace TcfBackup.Shared
                     process.StartInfo.Environment.Add(envName, envValue);
                 }
             }
+
             process.StartInfo.Environment.Add("LC_ALL", "C");
 
             if (!process.Start())
@@ -88,8 +89,9 @@ namespace TcfBackup.Shared
                     process.StartInfo.Environment.Add(envName, envValue);
                 }
             }
+
             process.StartInfo.Environment.Add("LC_ALL", "C");
-            
+
             if (!process.Start())
             {
                 throw new ProcessException("Unable to start process");

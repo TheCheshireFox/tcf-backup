@@ -16,10 +16,10 @@ namespace TcfBackup.Managers
 
         public static OpensslEncryptionManager CreateWithKeyFile(ILogger logger, string keyfile, string cipher, bool salt, bool pbkdf2, int iterations = 0)
             => new(logger, () => $"file: {keyfile}", cipher, salt, pbkdf2, iterations);
-        
+
         public static OpensslEncryptionManager CreateWithPassword(ILogger logger, string password, string cipher, bool salt, bool pbkdf2, int iterations = 0)
             => new(logger, () => $"pass: {password}", cipher, salt, pbkdf2, iterations);
-        
+
         public OpensslEncryptionManager(ILogger logger, Func<string> getPassArgument, string cipher, bool salt, bool pbkdf2, int iterations = 0)
         {
             _logger = logger;
@@ -71,9 +71,9 @@ namespace TcfBackup.Managers
                 $"-out {dst}",
                 $"-pass {_getPassArgument()}"
             };
-            
+
             args.AddRange(BuildEncryptionSpecificArgs());
-            
+
             _logger.Information("Decrypting {src} to {dst}...", src, dst);
             Subprocess.Exec("openssl", "enc -d " + string.Join(' ', args), _logger.GetProcessRedirects());
             _logger.Information("Decryption complete");

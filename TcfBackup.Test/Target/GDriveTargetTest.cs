@@ -14,19 +14,19 @@ namespace TcfBackup.Test.Target
     {
         private const string Directory = "/dev/null";
         private const string DirectoryId = "some_id";
-        
+
         [Test]
         public void CreatesTargetDirectory()
         {
-            var logger = new Mock<ILogger>(MockBehavior.Loose);
-            
+            var logger = new LoggerConfiguration().CreateLogger();
+
             var gDriveMock = new Mock<IGDriveAdapter>();
             gDriveMock.Setup(g => g.CreateDirectory(Directory)).Returns(DirectoryId);
 
             var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            
-            _ = new GDriveTarget(logger.Object, gDriveMock.Object, fsMock.Object, Directory);
-            
+
+            _ = new GDriveTarget(logger, gDriveMock.Object, fsMock.Object, Directory);
+
             gDriveMock.VerifyAll();
             fsMock.VerifyAll();
         }
@@ -36,25 +36,25 @@ namespace TcfBackup.Test.Target
         {
             var fileStreams = new Dictionary<string, Stream>
             {
-                {"/dev/null/file1", new MemoryStream()},
-                {"/dev/null/file2", new MemoryStream()},
-                {"/dev/null/file3", new MemoryStream()},
+                { "/dev/null/file1", new MemoryStream() },
+                { "/dev/null/file2", new MemoryStream() },
+                { "/dev/null/file3", new MemoryStream() },
             };
-            
-            var logger = new Mock<ILogger>(MockBehavior.Loose);
-            
+
+            var logger = new LoggerConfiguration().CreateLogger();
+
             var gDriveMock = new Mock<IGDriveAdapter>(MockBehavior.Strict);
             gDriveMock.Setup(g => g.CreateDirectory(Directory)).Returns(DirectoryId);
             fileStreams.ToList().ForEach(kv => gDriveMock.Setup(g => g.UploadFile(kv.Value, Path.GetFileName(kv.Key), DirectoryId)));
 
             var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
             fileStreams.ToList().ForEach(kv => fsMock.Setup(fs => fs.OpenRead(kv.Key)).Returns(kv.Value));
-            
+
             var sourceMock = new Mock<ISource>(MockBehavior.Strict);
             sourceMock.Setup(s => s.GetFiles()).Returns(fileStreams.Keys.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
-            
-            new GDriveTarget(logger.Object, gDriveMock.Object, fsMock.Object, Directory).Apply(sourceMock.Object);
-            
+
+            new GDriveTarget(logger, gDriveMock.Object, fsMock.Object, Directory).Apply(sourceMock.Object);
+
             gDriveMock.VerifyAll();
             fsMock.VerifyAll();
             sourceMock.VerifyAll();

@@ -24,7 +24,7 @@ namespace TcfBackup.Test.Scenarios
             mockAction?.Invoke(mock);
             return sc.AddSingleton(_ => mock.Object);
         }
-        
+
         public static IServiceCollection AddSingletonMock<T>(this IServiceCollection sc, Mock<T> mock)
             where T : class
         {
@@ -49,7 +49,7 @@ namespace TcfBackup.Test.Scenarios
             };
 
             var logger = new LoggerConfiguration().CreateLogger();
-            
+
             var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
             fsMock.Setup(fs => fs.GetFiles(sourceDir, It.IsAny<bool>(), false)).Returns(srcFiles);
             fsMock.Setup(fs => fs.DirectoryExists(sourceDir)).Returns(true);
@@ -68,7 +68,7 @@ namespace TcfBackup.Test.Scenarios
                 .BuildServiceProvider();
 
             sp.CreateService<BackupManager>().Backup();
-            
+
             fsMock.VerifyAll();
             factoryMock.VerifyAll();
         }

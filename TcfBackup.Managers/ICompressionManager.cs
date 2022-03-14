@@ -10,7 +10,7 @@ namespace TcfBackup.Managers
         ZStd,
         Gzip
     }
-    
+
     public interface ICompressionManager
     {
         void Compress(CompressAlgorithm algorithm, string archive, string[] files, string? changeDir = null, bool followSymlinks = false, CancellationToken cancellationToken = default);

@@ -1,22 +1,13 @@
-using System.Collections.Generic;
-using System.IO;
-
 namespace TcfBackup.Filesystem
 {
-    public interface IDirectoryTree
-    {
-        IReadOnlyCollection<string> Files { get; }
-        IReadOnlyDictionary<string, IDirectoryTree> Directories { get; }
-    }
-
     public interface IFilesystem
     {
         IEnumerable<string> GetFiles(string directory, bool throwIfPermissionDenied = false, bool followSymlinks = false);
-        
+
         string CreateTempDirectory();
         string CreateTempFile();
         string CreateTempFile(string filename, bool replace = false);
-        
+
         void CreateDirectory(string path);
 
         bool FileExists(string? path);

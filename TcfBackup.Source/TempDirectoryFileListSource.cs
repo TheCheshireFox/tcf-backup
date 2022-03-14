@@ -7,7 +7,7 @@ namespace TcfBackup.Source
         private readonly IFilesystem _fs;
 
         public string Directory { get; }
-        
+
         public TempDirectoryFileListSource(IFilesystem fs, string dir)
         {
             _fs = fs;
@@ -18,7 +18,6 @@ namespace TcfBackup.Source
 
         public void Prepare()
         {
-                
         }
 
         public void Cleanup()

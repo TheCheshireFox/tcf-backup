@@ -44,7 +44,7 @@ namespace TcfBackup.Shared
             }
 
             var relativePath = path[root.Length..];
-            
+
             return relativePath.StartsWith("/") ? relativePath[1..] : relativePath;
         }
     }

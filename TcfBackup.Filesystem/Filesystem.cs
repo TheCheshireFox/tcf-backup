@@ -144,7 +144,7 @@ namespace TcfBackup.Filesystem
                     ReturnSpecialDirectories = false
                 })
                 {
-                    ShouldIncludePredicate = (ref FileSystemEntry fse) => !fse.IsDirectory,
+                    ShouldIncludePredicate = (ref FileSystemEntry fse) => !fse.IsDirectory || !followSymlinks && fse.Attributes.HasFlag(FileAttributes.ReparsePoint),
                     ShouldRecursePredicate = (ref FileSystemEntry fse) => followSymlinks || !fse.Attributes.HasFlag(FileAttributes.ReparsePoint)
                 });
         }

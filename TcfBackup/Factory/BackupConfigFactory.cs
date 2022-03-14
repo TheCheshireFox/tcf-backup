@@ -23,6 +23,7 @@ namespace TcfBackup.Factory
             { SourceType.Directory, typeof(DirectorySourceOptions) },
             { SourceType.Lxd, typeof(LxdSourceOptions) },
         };
+
         private static readonly Dictionary<TargetType, Type> s_targetTypeMapping = new()
         {
             { TargetType.Directory, typeof(DirectoryTargetOptions) },
@@ -43,7 +44,7 @@ namespace TcfBackup.Factory
             {
                 throw new FormatException("No keyfile or signature specified for encryption manager.");
             }
-            
+
             if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.Signature))
             {
                 throw new FormatException("Both the keyfile and signature are specified. You can choose only one.");
@@ -53,7 +54,7 @@ namespace TcfBackup.Factory
             {
                 return GpgEncryptionManager.CreateWithKeyFile(_logger, _fs, opts.KeyFile, opts.Password);
             }
-            
+
             if (!string.IsNullOrEmpty(opts.Signature))
             {
                 return GpgEncryptionManager.CreateWithSignature(_logger, _fs, opts.Signature, opts.Password);
@@ -68,17 +69,17 @@ namespace TcfBackup.Factory
             {
                 throw new FormatException("No keyfile or password specified for encryption manager.");
             }
-            
+
             if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.Password))
             {
                 throw new FormatException("Both the keyfile and password are specified. You can choose only one.");
             }
-            
+
             if (!string.IsNullOrEmpty(opts.KeyFile))
             {
                 return OpensslEncryptionManager.CreateWithKeyFile(_logger, opts.KeyFile, opts.Cipher, opts.Salt, opts.Pbkdf2, opts.Iterations);
             }
-            
+
             if (!string.IsNullOrEmpty(opts.Password))
             {
                 return OpensslEncryptionManager.CreateWithPassword(_logger, opts.Password, opts.Cipher, opts.Salt, opts.Pbkdf2, opts.Iterations);
@@ -86,7 +87,7 @@ namespace TcfBackup.Factory
 
             throw new NotImplementedException();
         }
-        
+
         private IAction CreateCompressAction(CompressActionOptions opts)
         {
             var algo = opts.Algorithm switch
@@ -152,7 +153,7 @@ namespace TcfBackup.Factory
                 var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction} not supported")
             };
         }
-        
+
         public BackupConfigFactory(ILogger logger, IFilesystem fs, IBtrfsManager btrfsManager, ILxdManager lxdManager, ICompressionManager compressionManager, IGDriveAdapter gDriveAdapter, IConfiguration config)
         {
             _config = config;
@@ -162,12 +163,12 @@ namespace TcfBackup.Factory
             _lxdManager = lxdManager;
             _compressionManager = compressionManager;
             _gDriveAdapter = gDriveAdapter;
-            
+
             if (_config == null)
             {
                 throw new FormatException("Invalid configuration");
             }
-            
+
             if (!_config.ContainsKey("source")) throw new FormatException("Source not specified");
             if (!_config.ContainsKey("target")) throw new FormatException("Target not specified");
             if (!_config.ContainsKey("actions")) throw new FormatException("Actions not specified");
@@ -200,7 +201,7 @@ namespace TcfBackup.Factory
         public ITarget GetTarget()
         {
             var target = (TargetOptions)_config.Get(cfg => s_targetTypeMapping[cfg.GetValue<TargetType>("type")], "target");
-            
+
             return target switch
             {
                 DirectoryTargetOptions dirOpts => new DirTarget(_fs, dirOpts.Path, dirOpts.Overwrite),

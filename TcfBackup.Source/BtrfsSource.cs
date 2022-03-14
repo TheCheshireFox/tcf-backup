@@ -25,7 +25,9 @@ namespace TcfBackup.Source
 
             _snapshot = filesystem.DirectoryExists(snapshotDir)
                 ? Path.Combine(snapshotDir, new DirectoryInfo(subvolume).Name)
-                : snapshotDir;
+                : filesystem.DirectoryExists(Path.GetDirectoryName(snapshotDir))
+                    ? snapshotDir
+                    : throw new DirectoryNotFoundException(snapshotDir);
         }
 
         public IEnumerable<IFile> GetFiles() => GetFiles(false);
@@ -37,11 +39,11 @@ namespace TcfBackup.Source
             {
                 return;
             }
-            
+
             _logger.Information("Creating snapshot of {subvolume} to {snapshot}", _subvolume, _snapshot);
-            
+
             _btrfsManager.CreateSnapshot(_subvolume, _snapshot);
-            
+
             _logger.Information("Snapshot created");
         }
 
@@ -51,11 +53,11 @@ namespace TcfBackup.Source
             {
                 return;
             }
-            
+
             _logger.Information("Deleting snapshot {snapshot}...", _snapshot);
-            
+
             _btrfsManager.DeleteSubvolume(_snapshot);
-            
+
             _logger.Information("Complete");
         }
     }

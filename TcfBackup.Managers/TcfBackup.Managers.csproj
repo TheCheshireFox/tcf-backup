@@ -7,12 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
-      <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj" />
+        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj"/>
+        <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="gpgme-sharp" Version="2.0.3" />
+        <PackageReference Include="gpgme-sharp" Version="2.0.3"/>
     </ItemGroup>
 
 </Project>

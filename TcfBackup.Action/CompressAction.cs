@@ -31,7 +31,7 @@ namespace TcfBackup.Action
                 _ => throw new NotImplementedException()
             };
         }
-        
+
         public CompressAction(ILogger logger, ICompressionManager compressionManager, IFilesystem filesystem, CompressAlgorithm algo, string? archiveName, string changeDir, string? transform, bool followSymlinks)
         {
             _logger = logger.ForContextShort<CompressAction>();
@@ -51,9 +51,9 @@ namespace TcfBackup.Action
                 : string.IsNullOrEmpty(PathUtils.GetFullExtension(_archiveName))
                     ? _archiveName + AlgorithmToExtension()
                     : _archiveName;
-            
+
             var archiveFile = _filesystem.CreateTempFile(archiveName, true);
-            
+
             var files = source.GetFiles();
 
             _logger.Information("Compressing files with algorithm {algo}", _compressAlgorithm);

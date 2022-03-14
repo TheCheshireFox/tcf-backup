@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
-      <ProjectReference Include="..\TcfBackup.Managers\TcfBackup.Managers.csproj" />
+        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj"/>
+        <ProjectReference Include="..\TcfBackup.Managers\TcfBackup.Managers.csproj"/>
     </ItemGroup>
 
 </Project>

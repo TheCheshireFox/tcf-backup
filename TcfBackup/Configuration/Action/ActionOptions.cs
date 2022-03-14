@@ -8,7 +8,7 @@ namespace TcfBackup.Configuration.Action
         Filter,
         Rename
     }
-    
+
     public class ActionOptions
     {
         public ActionType Type { get; set; }

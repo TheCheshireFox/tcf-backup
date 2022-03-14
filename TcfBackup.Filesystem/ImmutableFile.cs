@@ -3,7 +3,7 @@ namespace TcfBackup.Filesystem
     public class ImmutableFile : IFile
     {
         private readonly IFilesystem _fs;
-        
+
         public string Path { get; }
 
         public ImmutableFile(IFilesystem fs, string path)

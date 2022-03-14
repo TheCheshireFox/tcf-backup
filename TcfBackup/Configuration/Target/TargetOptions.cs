@@ -6,7 +6,7 @@ namespace TcfBackup.Configuration.Target
         Directory,
         GDrive
     }
-    
+
     public class TargetOptions
     {
         public TargetType Type { get; set; }
