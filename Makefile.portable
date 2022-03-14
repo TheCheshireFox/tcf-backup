@@ -1,0 +1,2 @@
+install:
+	install -m 755 bin/tcf-backup $(DESTDIR)/usr/bin
