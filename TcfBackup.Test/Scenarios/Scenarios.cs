@@ -16,7 +16,7 @@ namespace TcfBackup.Test.Scenarios;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSingletonMock<T>(this IServiceCollection sc, Action<Mock<T>> mockAction = null)
+    public static IServiceCollection AddSingletonMock<T>(this IServiceCollection sc, Action<Mock<T>>? mockAction = null)
         where T : class
     {
         var mock = new Mock<T>();
