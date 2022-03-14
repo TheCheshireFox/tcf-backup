@@ -1,7 +1,6 @@
-namespace TcfBackup.Configuration.Source
+namespace TcfBackup.Configuration.Source;
+
+public class DirectorySourceOptions : SourceOptions
 {
-    public class DirectorySourceOptions : SourceOptions
-    {
-        public string Path { get; set; } = string.Empty;
-    }
+    public string Path { get; set; } = string.Empty;
 }

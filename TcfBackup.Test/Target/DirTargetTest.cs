@@ -6,42 +6,41 @@ using TcfBackup.Filesystem;
 using TcfBackup.Source;
 using TcfBackup.Target;
 
-namespace TcfBackup.Test.Target
+namespace TcfBackup.Test.Target;
+
+public class DirTargetTest
 {
-    public class DirTargetTest
+    private const string Directory = "/dev/null";
+
+    [Test]
+    public void CreatesTargetDirectory()
     {
-        private const string Directory = "/dev/null";
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateDirectory(Directory));
 
-        [Test]
-        public void CreatesTargetDirectory()
+        _ = new DirTarget(fsMock.Object, Directory, false);
+
+        fsMock.VerifyAll();
+    }
+
+    [Test]
+    public void CopyEachFileToDirectory()
+    {
+        var files = new[] { "/dev/null/file1", "/dev/null/file2", "/dev/null/file3" };
+
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateDirectory(Directory));
+        foreach (var file in files)
         {
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateDirectory(Directory));
-
-            _ = new DirTarget(fsMock.Object, Directory, false);
-
-            fsMock.VerifyAll();
+            fsMock.Setup(fs => fs.CopyFile(file, Path.Combine(Directory, Path.GetFileName(file)), true));
         }
 
-        [Test]
-        public void CopyEachFileToDirectory()
-        {
-            var files = new[] { "/dev/null/file1", "/dev/null/file2", "/dev/null/file3" };
+        var sourceMock = new Mock<ISource>();
+        sourceMock.Setup(s => s.GetFiles()).Returns(files.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateDirectory(Directory));
-            foreach (var file in files)
-            {
-                fsMock.Setup(fs => fs.CopyFile(file, Path.Combine(Directory, Path.GetFileName(file)), true));
-            }
+        new DirTarget(fsMock.Object, Directory, true).Apply(sourceMock.Object);
 
-            var sourceMock = new Mock<ISource>();
-            sourceMock.Setup(s => s.GetFiles()).Returns(files.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
-
-            new DirTarget(fsMock.Object, Directory, true).Apply(sourceMock.Object);
-
-            fsMock.VerifyAll();
-            sourceMock.VerifyAll();
-        }
+        fsMock.VerifyAll();
+        sourceMock.VerifyAll();
     }
 }

@@ -1,9 +1,8 @@
 using TcfBackup.Source;
 
-namespace TcfBackup.Target
+namespace TcfBackup.Target;
+
+public interface ITarget
 {
-    public interface ITarget
-    {
-        void Apply(ISource source);
-    }
+    void Apply(ISource source);
 }

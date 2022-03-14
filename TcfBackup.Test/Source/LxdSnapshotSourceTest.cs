@@ -8,163 +8,162 @@ using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Source;
 
-namespace TcfBackup.Test.Source
+namespace TcfBackup.Test.Source;
+
+public class LxdSnapshotSourceTest
 {
-    public class LxdSnapshotSourceTest
+    private static readonly string[] s_containers = { "container1", "container2", "container3" };
+
+    private const string BackupDirectory = "/dev/null";
+
+    [Test]
+    public void ThrowsIfContainersMissing()
     {
-        private static readonly string[] s_containers = { "container1", "container2", "container3" };
+        var logger = new LoggerConfiguration().CreateLogger();
 
-        private const string BackupDirectory = "/dev/null";
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
 
-        [Test]
-        public void ThrowsIfContainersMissing()
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+
+        Assert.Catch<Exception>(() => _ = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, new[] { "container3", "container4" }, false));
+    }
+
+    [Test]
+    public void NotThrowsIfContainersMissingAndIgnoreNonExistedIsSet()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
+
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+
+        _ = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, new[] { "container3", "container4" }, true);
+    }
+
+    [Test]
+    public void PrepareCreatesBackupsOfEachContainer()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
+
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+
+        foreach (var container in s_containers)
         {
-            var logger = new LoggerConfiguration().CreateLogger();
-
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-
-            Assert.Catch<Exception>(() => _ = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, new[] { "container3", "container4" }, false));
+            manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
         }
 
-        [Test]
-        public void NotThrowsIfContainersMissingAndIgnoreNonExistedIsSet()
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
+
+        var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers.ToArray(), true);
+
+        source.Prepare();
+
+        manager.VerifyAll();
+        fsMock.VerifyAll();
+    }
+
+    [Test]
+    public void PrepareCreatesBackupsOnlyForExistedContainers()
+    {
+        var existedContainers = new[] { "container1", "container2" };
+
+        var logger = new LoggerConfiguration().CreateLogger();
+
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+
+        foreach (var container in existedContainers)
         {
-            var logger = new LoggerConfiguration().CreateLogger();
-
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-
-            _ = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, new[] { "container3", "container4" }, true);
+            manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
         }
 
-        [Test]
-        public void PrepareCreatesBackupsOfEachContainer()
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
+
+        var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
+
+        source.Prepare();
+
+        manager.VerifyAll();
+        fsMock.VerifyAll();
+    }
+
+    [Test]
+    public void GetFilesListFilesInBackupDirectory()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
+
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+
+        foreach (var container in s_containers)
         {
-            var logger = new LoggerConfiguration().CreateLogger();
-
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
-
-            foreach (var container in s_containers)
-            {
-                manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
-            }
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-
-            var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers.ToArray(), true);
-
-            source.Prepare();
-
-            manager.VerifyAll();
-            fsMock.VerifyAll();
+            manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
         }
 
-        [Test]
-        public void PrepareCreatesBackupsOnlyForExistedContainers()
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
+        fsMock.Setup(fs => fs.GetFiles(BackupDirectory, false, false)).Returns(Array.Empty<string>());
+
+        var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
+
+        source.Prepare();
+        _ = source.GetFiles();
+
+        manager.VerifyAll();
+        fsMock.VerifyAll();
+    }
+
+    [Test]
+    public void CleanupDeletesBackupDirectory()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
+
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+
+        foreach (var container in s_containers)
         {
-            var existedContainers = new[] { "container1", "container2" };
-
-            var logger = new LoggerConfiguration().CreateLogger();
-
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
-
-            foreach (var container in existedContainers)
-            {
-                manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
-            }
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-
-            var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
-
-            source.Prepare();
-
-            manager.VerifyAll();
-            fsMock.VerifyAll();
+            manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
         }
 
-        [Test]
-        public void GetFilesListFilesInBackupDirectory()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
+        fsMock.Setup(fs => fs.DirectoryExists(BackupDirectory)).Returns(true);
+        fsMock.Setup(fs => fs.Delete(BackupDirectory));
 
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
+        var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
 
-            foreach (var container in s_containers)
-            {
-                manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
-            }
+        source.Prepare();
+        source.Cleanup();
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-            fsMock.Setup(fs => fs.GetFiles(BackupDirectory, false, false)).Returns(Array.Empty<string>());
+        manager.VerifyAll();
+        fsMock.VerifyAll();
+    }
 
-            var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
+    [Test]
+    public void BackupDirectoryDeletedIfPrepareThrowsException()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
 
-            source.Prepare();
-            _ = source.GetFiles();
+        var manager = new Mock<ILxdManager>(MockBehavior.Strict);
+        manager.Setup(m => m.ListContainers()).Returns(s_containers);
+        manager.Setup(m => m.BackupContainer(It.IsAny<string>(), It.IsAny<string>())).Throws<Exception>();
 
-            manager.VerifyAll();
-            fsMock.VerifyAll();
-        }
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
+        fsMock.Setup(fs => fs.DirectoryExists(BackupDirectory)).Returns(true);
+        fsMock.Setup(fs => fs.Delete(BackupDirectory));
 
-        [Test]
-        public void CleanupDeletesBackupDirectory()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
+        var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
 
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
+        source.Prepare();
 
-            foreach (var container in s_containers)
-            {
-                manager.Setup(m => m.BackupContainer(container, Path.Combine(BackupDirectory, container + ".tar.gz")));
-            }
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-            fsMock.Setup(fs => fs.DirectoryExists(BackupDirectory)).Returns(true);
-            fsMock.Setup(fs => fs.Delete(BackupDirectory));
-
-            var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
-
-            source.Prepare();
-            source.Cleanup();
-
-            manager.VerifyAll();
-            fsMock.VerifyAll();
-        }
-
-        [Test]
-        public void BackupDirectoryDeletedIfPrepareThrowsException()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
-
-            var manager = new Mock<ILxdManager>(MockBehavior.Strict);
-            manager.Setup(m => m.ListContainers()).Returns(s_containers);
-            manager.Setup(m => m.BackupContainer(It.IsAny<string>(), It.IsAny<string>())).Throws<Exception>();
-
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-            fsMock.Setup(fs => fs.DirectoryExists(BackupDirectory)).Returns(true);
-            fsMock.Setup(fs => fs.Delete(BackupDirectory));
-
-            var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
-
-            source.Prepare();
-
-            manager.VerifyAll();
-            fsMock.VerifyAll();
-        }
+        manager.VerifyAll();
+        fsMock.VerifyAll();
     }
 }

@@ -2,36 +2,35 @@ using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Source;
 
-namespace TcfBackup.Action
+namespace TcfBackup.Action;
+
+public class DecompressAction : IAction
 {
-    public class DecompressAction : IAction
+    private readonly IFilesystem _filesystem;
+    private readonly ICompressionManager _compressionManager;
+
+    public DecompressAction(ICompressionManager compressionManager, IFilesystem filesystem)
     {
-        private readonly IFilesystem _filesystem;
-        private readonly ICompressionManager _compressionManager;
+        _compressionManager = compressionManager;
+        _filesystem = filesystem;
+    }
 
-        public DecompressAction(ICompressionManager compressionManager, IFilesystem filesystem)
+    public ISource Apply(ISource source)
+    {
+        var tmpDirSource = new TempDirectoryFileListSource(_filesystem, _filesystem.CreateTempDirectory());
+        try
         {
-            _compressionManager = compressionManager;
-            _filesystem = filesystem;
+            foreach (var file in source.GetFiles())
+            {
+                _ = _compressionManager.Decompress(file.Path, tmpDirSource.Directory);
+            }
+        }
+        catch
+        {
+            tmpDirSource.Cleanup();
+            throw;
         }
 
-        public ISource Apply(ISource source)
-        {
-            var tmpDirSource = new TempDirectoryFileListSource(_filesystem, _filesystem.CreateTempDirectory());
-            try
-            {
-                foreach (var file in source.GetFiles())
-                {
-                    _ = _compressionManager.Decompress(file.Path, tmpDirSource.Directory);
-                }
-            }
-            catch
-            {
-                tmpDirSource.Cleanup();
-                throw;
-            }
-
-            return tmpDirSource;
-        }
+        return tmpDirSource;
     }
 }

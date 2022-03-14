@@ -3,55 +3,54 @@ using TcfBackup.Action;
 using TcfBackup.Factory;
 using TcfBackup.Source;
 
-namespace TcfBackup
+namespace TcfBackup;
+
+public class BackupManager
 {
-    public class BackupManager
+    private readonly IFactory _factory;
+
+    private static ISource ApplyAction(ISource source, IAction action)
     {
-        private readonly IFactory _factory;
-
-        private static ISource ApplyAction(ISource source, IAction action)
+        source.Prepare();
+        try
         {
-            source.Prepare();
+            return action.Apply(source);
+        }
+        finally
+        {
+            source.Cleanup();
+        }
+    }
+
+    public BackupManager(IFactory factory)
+    {
+        _factory = factory;
+    }
+
+    public void Backup()
+    {
+        var source = _factory.GetSource();
+        var target = _factory.GetTarget();
+        var actions = _factory.GetActions().ToArray();
+
+        source.Prepare();
+        try
+        {
+            var result = actions.Length > 0
+                ? actions.Skip(1).Aggregate(actions[0].Apply(source), ApplyAction)
+                : source;
             try
             {
-                return action.Apply(source);
+                target.Apply(result);
             }
             finally
             {
-                source.Cleanup();
+                result.Cleanup();
             }
         }
-
-        public BackupManager(IFactory factory)
+        finally
         {
-            _factory = factory;
-        }
-
-        public void Backup()
-        {
-            var source = _factory.GetSource();
-            var target = _factory.GetTarget();
-            var actions = _factory.GetActions().ToArray();
-
-            source.Prepare();
-            try
-            {
-                var result = actions.Length > 0
-                    ? actions.Skip(1).Aggregate(actions[0].Apply(source), ApplyAction)
-                    : source;
-                try
-                {
-                    target.Apply(result);
-                }
-                finally
-                {
-                    result.Cleanup();
-                }
-            }
-            finally
-            {
-                source.Cleanup();
-            }
+            source.Cleanup();
         }
     }
 }

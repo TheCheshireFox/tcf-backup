@@ -1,6 +1,5 @@
-namespace TcfBackup.Shared.Native
+namespace TcfBackup.Shared.Native;
+
+public interface IProcessKiller : IDisposable
 {
-    public interface IProcessKiller : IDisposable
-    {
-    }
 }

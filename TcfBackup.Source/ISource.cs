@@ -1,11 +1,10 @@
 using TcfBackup.Filesystem;
 
-namespace TcfBackup.Source
+namespace TcfBackup.Source;
+
+public interface ISource
 {
-    public interface ISource
-    {
-        IEnumerable<IFile> GetFiles();
-        void Prepare();
-        void Cleanup();
-    }
+    IEnumerable<IFile> GetFiles();
+    void Prepare();
+    void Cleanup();
 }

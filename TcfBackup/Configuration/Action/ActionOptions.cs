@@ -1,16 +1,15 @@
-namespace TcfBackup.Configuration.Action
-{
-    public enum ActionType
-    {
-        None,
-        Compress,
-        Encrypt,
-        Filter,
-        Rename
-    }
+namespace TcfBackup.Configuration.Action;
 
-    public class ActionOptions
-    {
-        public ActionType Type { get; set; }
-    }
+public enum ActionType
+{
+    None,
+    Compress,
+    Encrypt,
+    Filter,
+    Rename
+}
+
+public class ActionOptions
+{
+    public ActionType Type { get; set; }
 }
