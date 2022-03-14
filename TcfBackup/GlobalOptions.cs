@@ -1,8 +1,7 @@
-namespace TcfBackup
+namespace TcfBackup;
+
+public class GlobalOptions
 {
-    public class GlobalOptions
-    {
-        public bool Managed { get; set; }
-        public string? WorkingDir { get; set; }
-    }
+    public bool Managed { get; set; }
+    public string? WorkingDir { get; set; }
 }

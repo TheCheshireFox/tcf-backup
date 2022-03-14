@@ -1,7 +1,6 @@
-namespace TcfBackup.Configuration.Target
+namespace TcfBackup.Configuration.Target;
+
+public class GDriveTargetOptions : TargetOptions
 {
-    public class GDriveTargetOptions : TargetOptions
-    {
-        public string? Path { get; set; }
-    }
+    public string? Path { get; set; }
 }

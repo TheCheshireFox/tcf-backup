@@ -1,7 +1,6 @@
-namespace TcfBackup.Configuration.Action
+namespace TcfBackup.Configuration.Action;
+
+public class GpgEncryptionActionOptions : EncryptionActionOptions
 {
-    public class GpgEncryptionActionOptions : EncryptionActionOptions
-    {
-        public string? Signature { get; set; }
-    }
+    public string? Signature { get; set; }
 }

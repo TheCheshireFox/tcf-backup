@@ -3,12 +3,11 @@ using TcfBackup.Action;
 using TcfBackup.Source;
 using TcfBackup.Target;
 
-namespace TcfBackup.Factory
+namespace TcfBackup.Factory;
+
+public interface IFactory
 {
-    public interface IFactory
-    {
-        ISource GetSource();
-        IEnumerable<IAction> GetActions();
-        ITarget GetTarget();
-    }
+    ISource GetSource();
+    IEnumerable<IAction> GetActions();
+    ITarget GetTarget();
 }

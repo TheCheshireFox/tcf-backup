@@ -1,8 +1,7 @@
-namespace TcfBackup.Managers
+namespace TcfBackup.Managers;
+
+public interface IBtrfsManager
 {
-    public interface IBtrfsManager
-    {
-        void CreateSnapshot(string subvolume, string targetDir);
-        void DeleteSubvolume(string subvolume);
-    }
+    void CreateSnapshot(string subvolume, string targetDir);
+    void DeleteSubvolume(string subvolume);
 }

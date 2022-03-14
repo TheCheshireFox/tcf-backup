@@ -1,47 +1,46 @@
 using System.Diagnostics;
 using Mono.Unix.Native;
 
-namespace TcfBackup.Shared.Native.Unix
+namespace TcfBackup.Shared.Native.Unix;
+
+public class UnixProcessKiller : IProcessKiller
 {
-    public class UnixProcessKiller : IProcessKiller
+    private readonly CancellationTokenRegistration? _tokenRegistration;
+
+    public UnixProcessKiller(Process process, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        private readonly CancellationTokenRegistration? _tokenRegistration;
+        if (!cancellationToken.CanBeCanceled) return;
 
-        public UnixProcessKiller(Process process, TimeSpan timeout, CancellationToken cancellationToken = default)
+        _tokenRegistration = cancellationToken.Register(() =>
         {
-            if (!cancellationToken.CanBeCanceled) return;
-
-            _tokenRegistration = cancellationToken.Register(() =>
+            if (process.HasExited)
             {
-                if (process.HasExited)
+                return;
+            }
+
+            if (process.Id > 1)
+            {
+                Syscall.kill(process.Id, Signum.SIGINT);
+            }
+
+            if (!process.WaitForExit((int)timeout.TotalMilliseconds))
+            {
+                try
                 {
-                    return;
+                    process.Kill(true);
                 }
-
-                if (process.Id > 1)
+                catch
                 {
-                    Syscall.kill(process.Id, Signum.SIGINT);
+                    // NOP
                 }
+            }
 
-                if (!process.WaitForExit((int)timeout.TotalMilliseconds))
-                {
-                    try
-                    {
-                        process.Kill(true);
-                    }
-                    catch
-                    {
-                        // NOP
-                    }
-                }
-
-                _tokenRegistration?.Dispose();
-            });
-        }
-
-        public void Dispose()
-        {
             _tokenRegistration?.Dispose();
-        }
+        });
+    }
+
+    public void Dispose()
+    {
+        _tokenRegistration?.Dispose();
     }
 }

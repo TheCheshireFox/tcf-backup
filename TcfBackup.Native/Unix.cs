@@ -1,4 +1,3 @@
-using System.IO.Enumeration;
 using System.Text;
 using Mono.Unix;
 using Mono.Unix.Native;

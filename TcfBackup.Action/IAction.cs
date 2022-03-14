@@ -1,9 +1,8 @@
 using TcfBackup.Source;
 
-namespace TcfBackup.Action
+namespace TcfBackup.Action;
+
+public interface IAction
 {
-    public interface IAction
-    {
-        ISource Apply(ISource source);
-    }
+    ISource Apply(ISource source);
 }

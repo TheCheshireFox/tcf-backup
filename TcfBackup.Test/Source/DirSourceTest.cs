@@ -6,91 +6,90 @@ using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Source;
 
-namespace TcfBackup.Test.Source
+namespace TcfBackup.Test.Source;
+
+public class DirSourceTest
 {
-    public class DirSourceTest
+    private const string Directory = "/dev/null";
+
+    [Test]
+    public void ThrowsIfDirectoryNotExists()
     {
-        private const string Directory = "/dev/null";
+        var logger = new LoggerConfiguration().CreateLogger();
 
-        [Test]
-        public void ThrowsIfDirectoryNotExists()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(false);
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(false);
+        Assert.Catch<DirectoryNotFoundException>(() => _ = new DirSource(logger, fsMock.Object, Directory));
+    }
 
-            Assert.Catch<DirectoryNotFoundException>(() => _ = new DirSource(logger, fsMock.Object, Directory));
-        }
+    [Test]
+    public void PrepareDoNothing()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
 
-        [Test]
-        public void PrepareDoNothing()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
+        var source = new DirSource(logger, fsMock.Object, Directory);
 
-            var source = new DirSource(logger, fsMock.Object, Directory);
+        source.Prepare();
 
-            source.Prepare();
+        fsMock.VerifyAll();
+    }
 
-            fsMock.VerifyAll();
-        }
+    [Test]
+    public void CleanupDoNothing()
+    {
+        var logger = new LoggerConfiguration().CreateLogger();
 
-        [Test]
-        public void CleanupDoNothing()
-        {
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
+        var source = new DirSource(logger, fsMock.Object, Directory);
 
-            var source = new DirSource(logger, fsMock.Object, Directory);
+        source.Cleanup();
 
-            source.Cleanup();
+        fsMock.VerifyAll();
+    }
 
-            fsMock.VerifyAll();
-        }
+    [Test]
+    public void GetFilesListFilesInDirectory()
+    {
+        var files = new[] { "/dev/null/1", "/dev/null/2", "/dev/null/3" };
 
-        [Test]
-        public void GetFilesListFilesInDirectory()
-        {
-            var files = new[] { "/dev/null/1", "/dev/null/2", "/dev/null/3" };
+        var logger = new LoggerConfiguration().CreateLogger();
 
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
+        fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
-            fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
+        var source = new DirSource(logger, fsMock.Object, Directory);
 
-            var source = new DirSource(logger, fsMock.Object, Directory);
+        source.Prepare();
 
-            source.Prepare();
+        Assert.That(source.GetFiles().Select(f => f.Path), Is.EquivalentTo(files));
 
-            Assert.That(source.GetFiles().Select(f => f.Path), Is.EquivalentTo(files));
+        fsMock.VerifyAll();
+    }
 
-            fsMock.VerifyAll();
-        }
+    [Test]
+    public void GetFilesReturnsImmutableFiles()
+    {
+        var files = new[] { "/dev/null/1", "/dev/null/2", "/dev/null/3" };
 
-        [Test]
-        public void GetFilesReturnsImmutableFiles()
-        {
-            var files = new[] { "/dev/null/1", "/dev/null/2", "/dev/null/3" };
+        var logger = new LoggerConfiguration().CreateLogger();
 
-            var logger = new LoggerConfiguration().CreateLogger();
+        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
+        fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
 
-            var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-            fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
-            fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
+        var source = new DirSource(logger, fsMock.Object, Directory);
 
-            var source = new DirSource(logger, fsMock.Object, Directory);
+        source.Prepare();
 
-            source.Prepare();
+        Assert.That(source.GetFiles().All(f => f is ImmutableFile));
 
-            Assert.That(source.GetFiles().All(f => f is ImmutableFile));
-
-            fsMock.VerifyAll();
-        }
+        fsMock.VerifyAll();
     }
 }
