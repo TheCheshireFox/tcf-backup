@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
 public class Scenarios
 {
     [Test]
-    public void Test()
+    public void DirToDirScenario()
     {
         const string sourceDir = "/dev/null/src";
         const string dstDir = "/dev/null/dst";
