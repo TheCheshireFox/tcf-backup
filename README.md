@@ -1,4 +1,4 @@
-#Configuration file structure
+# Configuration file structure
 Tcf-backup uses yaml with instructions how and what to backup.
 Every config should contains 3 nodes:
 * source
@@ -8,7 +8,7 @@ Every config should contains 3 nodes:
 Where source and target are single nodes when actions is list of nodes.
 Below are config format specification and examples:
 
-##Source
+## Source
 ```yaml
 # Source: Directory
 # Parameters:
@@ -49,7 +49,7 @@ source:
 ---
 
 ```
-##Actions
+## Actions
 ```yaml
 # Action: Filter
 # Parameters:
@@ -133,9 +133,9 @@ target:
 ```
 
 
-##Examples
+## Examples
 
-###Example 1
+### Example 1
 ```yaml
 source:
   type: directory
@@ -156,7 +156,7 @@ target:
   overwrite: true
 ```
 
-###Example 2
+### Example 2
 ```yaml
 source:
   type: directory
@@ -181,7 +181,7 @@ target:
   path: backups
 ```
 
-##TODO
+## TODO
  - [ ] Description of program
  - [ ] Binaries
  - [ ] Move documentation to wiki
