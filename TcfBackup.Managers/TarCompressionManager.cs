@@ -39,13 +39,23 @@ public class TarCompressionManager : ICompressionManager
         _filesystem = filesystem;
     }
 
-    public void Compress(CompressAlgorithm algorithm, string archive, string[] files, string? changeDir = null, bool followSymlinks = false, CancellationToken cancellationToken = default)
+    public void CheckAvailable()
+    {
+        if (SystemUtils.Which("tar") == null)
+        {
+            throw new FileNotFoundException("Tar executable not found");
+        }
+    }
+    
+    public void Compress(CompressAlgorithm algorithm, string archive, IEnumerable<string> files, string? changeDir = null, bool followSymlinks = false, CancellationToken cancellationToken = default)
     {
         var filesFile = _filesystem.CreateTempFile();
 
         try
         {
-            File.WriteAllLines(filesFile, string.IsNullOrEmpty(changeDir) ? files : files.Select(f => PathUtils.GetRelativePath(changeDir, f)));
+            _filesystem.WriteAllLines(filesFile, string.IsNullOrEmpty(changeDir)
+                ? files
+                : files.Select(f => PathUtils.GetRelativePath(changeDir, f)));
 
             var args = new List<string>();
 
@@ -93,7 +103,7 @@ public class TarCompressionManager : ICompressionManager
                     if (line != null)
                     {
                         files.Add(line);
-                        _logger.Information("{file}", line);
+                        _logger.Information("{File}", line);
                     }
                 }
             }, TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously);
@@ -105,7 +115,7 @@ public class TarCompressionManager : ICompressionManager
                     var line = error.ReadLine();
                     if (line != null)
                     {
-                        _logger.Error("{file}", line);
+                        _logger.Error("{File}", line);
                     }
                 }
             }, TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously);

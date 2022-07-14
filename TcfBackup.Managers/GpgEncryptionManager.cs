@@ -23,7 +23,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
     private static Key KeyFromKeyFile(IFilesystem fs, Context context, string keyfile)
     {
-        if (!File.Exists(keyfile))
+        if (!fs.FileExists(keyfile))
         {
             throw new FileNotFoundException($"File or key {keyfile} not found");
         }
@@ -39,13 +39,13 @@ public class GpgEncryptionManager : IEncryptionManager
 
         if (importResult.Imports.Result != 0)
         {
-            throw new IOException($"Unable to import key {keyfile}");
+            throw new IOException($"Unable to import key {keyfile}: {importResult.Imports.Result}");
         }
 
         return context.KeyStore.GetKey(importResult.Imports.Fpr, false);
     }
 
-    private static Key KeyFromStore(IFilesystem fs, Context context, string signature)
+    private static Key KeyFromStore(Context context, string signature)
     {
         return context.KeyStore
             .GetKeyList("", false)
@@ -78,7 +78,7 @@ public class GpgEncryptionManager : IEncryptionManager
         => new(logger, fs, ctx => KeyFromKeyFile(fs, ctx, keyFile), password);
 
     public static GpgEncryptionManager CreateWithSignature(ILogger logger, IFilesystem fs, string signature, string? password = null)
-        => new(logger, fs, ctx => KeyFromStore(fs, ctx, signature), password);
+        => new(logger, fs, ctx => KeyFromStore(ctx, signature), password);
 
     private GpgEncryptionManager(ILogger logger, IFilesystem fs, Func<Context, Key> getKey, string? password)
     {
@@ -88,6 +88,18 @@ public class GpgEncryptionManager : IEncryptionManager
         _password = password;
     }
 
+    public void CheckAvailable()
+    {
+        try
+        {
+            Gpgme.CheckVersion();
+        }
+        catch (Exception)
+        {
+            throw new FileNotFoundException("Unable to locate libgpg library.");
+        }
+    }
+    
     public void Encrypt(string src, string dst)
     {
         using var gpgContext = PrepareContext();
@@ -99,6 +111,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
         gpgContext.Context.Armor = true;
 
+        _logger.Information("Encryption of file {Source} to {Target}...", src, dst);
         gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
     }
 
@@ -111,6 +124,7 @@ public class GpgEncryptionManager : IEncryptionManager
         using var dstRawStream = _fs.OpenWrite(dst);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
+        _logger.Information("Decryption of file {Source} to {Target}...", src, dst);
         gpgContext.Context.Decrypt(srcStream, dstStream);
     }
 }

@@ -139,7 +139,7 @@ public class BtrfsSourceTest
     }
 
     [Test]
-    public void GetFilesReturnsFilesFromSnapshotIfSnapshotDirIsNull()
+    public void GetFilesReturnsFilesFromSubvolumeIfSnapshotDirIsNull()
     {
         var files = new[] { "/dev/null/1", "/dev/null/2", "/dev/null/3" };
 

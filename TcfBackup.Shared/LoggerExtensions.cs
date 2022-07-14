@@ -9,8 +9,7 @@ public static class LoggerExtensions
     {
         return Task.Factory.StartNew(() =>
         {
-            string? line;
-            while ((line = reader.ReadLine()) != null)
+            while (reader.ReadLine() is { } line)
             {
                 log(line);
             }
