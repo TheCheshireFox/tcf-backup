@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit
 
 rm -rf publish
 mkdir -p publish/{portable,standart}/{Release,pdb,dist/{bin,}}
