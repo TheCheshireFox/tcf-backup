@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Moq;
 using NUnit.Framework;
 using TcfBackup.Filesystem;
@@ -38,7 +39,7 @@ public class DirTargetTest
         var sourceMock = new Mock<ISource>();
         sourceMock.Setup(s => s.GetFiles()).Returns(files.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
 
-        new DirTarget(fsMock.Object, Directory, true).Apply(sourceMock.Object);
+        new DirTarget(fsMock.Object, Directory, true).Apply(sourceMock.Object, CancellationToken.None);
 
         fsMock.VerifyAll();
         sourceMock.VerifyAll();

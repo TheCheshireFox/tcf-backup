@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using Moq;
 using NUnit.Framework;
 using Serilog;
@@ -55,7 +56,7 @@ public class FilterActionTest
     {
         public string[] IncludeRegex => new[] { "/dev/null/foo[0-9]+" };
         public string[] ExcludeRegex => new[] { "/dev/null/foo[0-9]+bar" };
-        public string[] Files => new[] { "/dev/null/foo1", "/dev/null/foo2", "/dev/null/foo1bar", "/dev/null/foo2bar", "/dev/null/notInclude" };
+        public string[] Files => new[] { "/dev/null/foo1", "/dev/null/foo2", "/dev/null/foo1bar", "/dev/null/foo2bar" };
         public string[] Expected => new[] { "/dev/null/foo1", "/dev/null/foo2" };
     }
 
@@ -71,13 +72,13 @@ public class FilterActionTest
 
         var logger = new LoggerConfiguration().CreateLogger();
 
-        var filter = new FilterAction(logger, testSet.IncludeRegex, testSet.ExcludeRegex, false);
-
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
+        
+        var filter = new FilterAction(logger, fsMock.Object, testSet.IncludeRegex, testSet.ExcludeRegex, false);
 
         var sourceMock = new Mock<ISource>(MockBehavior.Strict);
         sourceMock.Setup(s => s.GetFiles()).Returns(testSet.Files.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
 
-        CollectionAssert.AreEquivalent(testSet.Expected, filter.Apply(sourceMock.Object).GetFiles().Select(f => f.Path));
+        CollectionAssert.AreEquivalent(testSet.Expected, filter.Apply(sourceMock.Object, CancellationToken.None).GetFiles().Select(f => f.Path));
     }
 }

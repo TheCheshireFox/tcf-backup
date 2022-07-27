@@ -6,46 +6,17 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
+using TcfBackup.CmdlineOptions;
 using TcfBackup.Configuration;
+using TcfBackup.Configuration.Global;
+using TcfBackup.Extensions.Configuration;
 using TcfBackup.Factory;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Shared;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace TcfBackup;
-
-public class GenericOptions
-{
-    [Option('v', "verbose", Required = false, SetName = "Logging")]
-    public bool Verbose { get; set; } = false;
-
-    [Option('d', "debug", Required = false, SetName = "Logging")]
-    public bool Debug { get; set; } = false;
-
-#if DEBUG
-    [Option("wait-debugger", Hidden = true, Required = false)]
-    public bool WaitDebugger { get; set; }
-#endif
-}
-
-[Verb("backup", HelpText = "Perform backups")]
-public class BackupOptions : GenericOptions
-{
-    [Value(0, MetaName = "path", HelpText = "Configuration file", Required = true)]
-    public string? ConfigurationFile { get; set; }
-}
-
-[Verb("restore", HelpText = "Restore managed backups")]
-public class RestoreOptions : GenericOptions
-{
-    [Value(0, MetaName = "path", HelpText = "Configuration file", Required = true)]
-    public string? ConfigurationFile { get; set; }
-}
-
-[Verb("google-auth", HelpText = "Perform google authentication")]
-public class GoogleAuthOptions : GenericOptions
-{
-}
 
 public class LoggerOptions
 {
@@ -76,14 +47,32 @@ public static class Program
 #endif
     }
 
+    private static GlobalOptions BindGlobalOptions(IConfiguration configuration)
+    {
+        var opts = configuration.Get<GlobalOptions>();
+
+        if (opts.Database != null)
+        {
+            opts.Database = opts.Database.Type switch
+            {
+                DatabaseType.Local => configuration.GetSection("database").Get<LocalDatabase>(),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+
+        return opts;
+    }
+    
     private static void ParsedBackup(BackupOptions opts)
     {
         WaitDebugger(opts);
 
+        var globalConfig = ConfigurationFactory.CreateConfiguration(AppEnvironment.GlobalConfiguration);
         var config = ConfigurationFactory.CreateBackupConfiguration(opts);
+        globalConfig = globalConfig.Merge(config.GetSection("global"));
 
         var di = new ServiceCollection()
-            .Configure<GlobalOptions>(config.GetSection("global"))
+            .Configure(globalConfig, BindGlobalOptions)
             .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
             .AddTransientFromFactory<LoggerFactory, ILogger>()
             .AddSingletonFromFactory<FilesystemFactory, IFilesystem>()
@@ -94,18 +83,27 @@ public static class Program
             .AddSingleton<IConfiguration>(config)
             .AddSingleton<IFactory, BackupConfigFactory>();
 
-        var dp = di.BuildServiceProvider();
+        using var dp = di.BuildServiceProvider();
 
         AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
 
         try
         {
             var manager = dp.CreateService<BackupManager>();
-            manager.Backup();
+            var interruptionHandler = new InterruptionHandler();
+
+            manager.Backup(interruptionHandler.Token);
         }
         catch (Exception e)
         {
-            dp.GetService<ILogger>()!.Fatal("{exc}", e);
+            if (e is OperationCanceledException)
+            {
+                dp.GetService<ILogger>()!.Information("Operation cancelled");
+            }
+            else
+            {
+                dp.GetService<ILogger>()!.Fatal("{exc}", e);
+            }
         }
     }
 
@@ -139,7 +137,7 @@ public static class Program
     public static void Main(string[] args)
     {
         Parser.Default
-            .ParseArguments<BackupOptions, RestoreOptions>(args)
+            .ParseArguments<BackupOptions, RestoreOptions, GoogleAuthOptions>(args)
             .WithParsed<BackupOptions>(ParsedBackup)
             .WithParsed<RestoreOptions>(ParsedRestore)
             .WithParsed<GoogleAuthOptions>(ParsedGoogleAuth);

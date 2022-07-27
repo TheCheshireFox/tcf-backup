@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Moq;
 using NUnit.Framework;
 using Serilog;
@@ -45,7 +46,7 @@ public class GDriveTargetTest
 
         var gDriveMock = new Mock<IGDriveAdapter>(MockBehavior.Strict);
         gDriveMock.Setup(g => g.CreateDirectory(Directory)).Returns(DirectoryId);
-        fileStreams.ToList().ForEach(kv => gDriveMock.Setup(g => g.UploadFile(kv.Value, Path.GetFileName(kv.Key), DirectoryId)));
+        fileStreams.ToList().ForEach(kv => gDriveMock.Setup(g => g.UploadFile(kv.Value, Path.GetFileName(kv.Key), DirectoryId, CancellationToken.None)));
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fileStreams.ToList().ForEach(kv => fsMock.Setup(fs => fs.OpenRead(kv.Key)).Returns(kv.Value));
@@ -53,7 +54,7 @@ public class GDriveTargetTest
         var sourceMock = new Mock<ISource>(MockBehavior.Strict);
         sourceMock.Setup(s => s.GetFiles()).Returns(fileStreams.Keys.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());
 
-        new GDriveTarget(logger, gDriveMock.Object, fsMock.Object, Directory).Apply(sourceMock.Object);
+        new GDriveTarget(logger, gDriveMock.Object, fsMock.Object, Directory).Apply(sourceMock.Object, CancellationToken.None);
 
         gDriveMock.VerifyAll();
         fsMock.VerifyAll();

@@ -107,7 +107,7 @@ public class LxdSnapshotSourceTest
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.CreateTempDirectory()).Returns(BackupDirectory);
-        fsMock.Setup(fs => fs.GetFiles(BackupDirectory, false, false)).Returns(Array.Empty<string>());
+        fsMock.Setup(fs => fs.GetFiles(BackupDirectory, false, false, false)).Returns(Array.Empty<string>());
 
         var source = new LxdSnapshotSource(logger, manager.Object, fsMock.Object, s_containers, true);
 

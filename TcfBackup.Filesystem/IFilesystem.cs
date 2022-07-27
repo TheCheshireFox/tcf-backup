@@ -2,7 +2,7 @@ namespace TcfBackup.Filesystem;
 
 public interface IFilesystem
 {
-    IEnumerable<string> GetFiles(string directory, bool throwIfPermissionDenied = false, bool followSymlinks = false);
+    IEnumerable<string> GetFiles(string directory, bool throwIfPermissionDenied = false, bool followSymlinks = false, bool oneFilesystem = false);
 
     string CreateTempDirectory();
     string CreateTempFile();

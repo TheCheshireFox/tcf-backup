@@ -36,6 +36,29 @@ public static class PathUtils
         return string.Join(Path.DirectorySeparatorChar, result);
     }
 
+    public static bool IsParentDirectory(string searchDir, string dir, bool allowSub = false)
+    {
+        var searchDirInfo = new DirectoryInfo(searchDir);
+        
+        if (!allowSub)
+        {
+            return new DirectoryInfo(dir).Parent?.FullName == searchDirInfo.FullName;
+        }
+
+        var dirDirInfo = new DirectoryInfo(dir);
+        while (dirDirInfo.Parent != null)
+        {
+            if (dirDirInfo.Parent.FullName == searchDirInfo.FullName)
+            {
+                return true;
+            }
+
+            dirDirInfo = dirDirInfo.Parent;
+        }
+
+        return false;
+    }
+
     public static string GetRelativePath(string root, string path)
     {
         if (!path.StartsWith(root))
@@ -46,5 +69,16 @@ public static class PathUtils
         var relativePath = path[root.Length..];
 
         return relativePath.StartsWith("/") ? relativePath[1..] : relativePath;
+    }
+
+    public static string? GetFileNameWithoutExtension(string? path)
+    {
+        if (path == null)
+        {
+            return null;
+        }
+
+        var ext = GetFullExtension(path);
+        return path[..^ext.Length];
     }
 }

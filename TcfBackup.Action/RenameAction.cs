@@ -24,7 +24,7 @@ public class RenameAction : IAction
 
     private static string ApplyFormat<T>(T input, string? format) => string.IsNullOrEmpty(format) ? input?.ToString() ?? "" : string.Format($"{{0:{format}}}", input);
     private static string FormatFilename(string filename, string? format) => ApplyFormat(filename, format);
-    private static string FormatFilenameWithoutExt(string filename, string? format) => ApplyFormat(Path.GetFileNameWithoutExtension(filename), format);
+    private static string FormatFilenameWithoutExt(string filename, string? format) => ApplyFormat(PathUtils.GetFileNameWithoutExtension(filename), format);
     private static string FormatExtension(string filename, string? format) => ApplyFormat(PathUtils.GetFullExtension(filename)[1..], format);
 
     private static string FormatDate(string filename, string? format) => string.IsNullOrEmpty(format)
@@ -93,7 +93,7 @@ public class RenameAction : IAction
 
             if (placeholder == null)
             {
-                throw new FormatException($"No placeholder name in {placeholder}");
+                throw new FormatException($"No placeholder name in {param}");
             }
 
             replacements.Add((index, closeIndex - index, s_templateReplacers[placeholder](filename, format)));
@@ -130,22 +130,43 @@ public class RenameAction : IAction
         _overwrite = overwrite;
     }
 
-    public ISource Apply(ISource source)
+    public ISource Apply(ISource source, CancellationToken cancellationToken)
     {
         _logger.Information("Renaming files...");
 
-        var renames = source.GetFiles().ToDictionary(f => f, f => Path.Combine(Path.GetDirectoryName(f.Path) ?? "/", Format(_template, Path.GetFileName(f.Path))));
-        foreach (var (src, dst) in renames)
+        var targetDir = _fs.CreateTempDirectory();
+        try
         {
-            if (src.Path.Equals(dst))
+            var renames = source.GetFiles()
+                .ToDictionary(f => f,
+                    f => Path.Combine(targetDir, Format(_template, Path.GetFileName(f.Path))));
+
+            foreach (var (src, dst) in renames)
             {
-                continue;
+                if (src.Path.Equals(dst))
+                {
+                    continue;
+                }
+
+                _logger.Information("{src} -> {dst}...", src.Path, dst);
+                src.Move(dst, _overwrite);
             }
 
-            src.Move(dst, _overwrite);
+            _logger.Information("Renaming complete");
+            return FilesListSource.CreateMutable(_fs, targetDir);
         }
+        catch (Exception)
+        {
+            try
+            {
+                _fs.Delete(targetDir);
+            }
+            catch (Exception)
+            {
+                // NOP
+            }
 
-        _logger.Information("Renaming complete");
-        return FilesListSource.CreateMutable(_fs, renames.Values);
+            throw;
+        }
     }
 }

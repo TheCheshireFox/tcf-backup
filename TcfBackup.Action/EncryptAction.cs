@@ -19,7 +19,7 @@ public class EncryptAction : IAction
         _encryptionManager = encryptionManager;
     }
 
-    public ISource Apply(ISource source)
+    public ISource Apply(ISource source, CancellationToken cancellationToken)
     {
         _logger.Information("Start encryption");
 
@@ -42,12 +42,12 @@ public class EncryptAction : IAction
             foreach (var (src, dst) in encryptedFiles)
             {
                 _logger.Information("Encrypting file {src} to {dst}...", src, dst);
-                _encryptionManager.Encrypt(src, dst);
+                _encryptionManager.Encrypt(src, dst, cancellationToken);
             }
 
             _logger.Information("Encryption complete");
 
-            return FilesListSource.CreateMutable(_filesystem, encryptedFiles.Values);
+            return FilesListSource.CreateMutable(_filesystem, targetDir);
         }
         catch (Exception)
         {

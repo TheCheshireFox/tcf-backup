@@ -4,57 +4,80 @@ using TcfBackup.Shared;
 
 namespace TcfBackup.Filesystem;
 
-public enum FilesystemNodeType
-{
-    Directory,
-    File
-}
-
-public class FilesystemNode
-{
-    public string Name { get; }
-    public string FullPath { get; }
-    public FilesystemNodeType NodeType { get; }
-    public FilesystemNode? Parent { get; }
-    public IEnumerable<FilesystemNode> Children { get; }
-
-    public FilesystemNode(FilesystemNode? parent, string name, FilesystemNodeType nodeType)
-    {
-        Name = name;
-        NodeType = nodeType;
-        FullPath = Path.Combine(parent == null ? Path.DirectorySeparatorChar.ToString() : parent.FullPath, name);
-        Parent = parent;
-        Children = GetChildren(FullPath);
-    }
-
-    private IEnumerable<FilesystemNode> GetChildren(string directory)
-    {
-        var opts = new EnumerationOptions
-        {
-            RecurseSubdirectories = false,
-            AttributesToSkip = FileAttributes.Device,
-            IgnoreInaccessible = true,
-            ReturnSpecialDirectories = false
-        };
-
-        var entries = new FileSystemEnumerable<(string Name, bool IsDirectory)>(
-            directory,
-            (ref FileSystemEntry entry) => (entry.FileName.ToString(), entry.IsDirectory),
-            opts);
-
-        foreach (var entry in entries)
-        {
-            yield return new FilesystemNode(this, entry.Name, entry.IsDirectory ? FilesystemNodeType.Directory : FilesystemNodeType.File);
-        }
-    }
-}
-
 public class Filesystem : IFilesystem, IDisposable
 {
-    private static readonly string[] s_ignoreFsTypes = { "proc", "sysfs", "devtmpfs", "securityfs", "cgroup2", "efivarfs", "bpf" };
-
     private readonly string _tempDirectory;
     private readonly Action _tempDirectoryCleanup;
+
+    private static IEnumerable<string> EnumerateDirectories(string directory, bool throwIfPermissionDenied = false, bool oneFilesystem = false)
+    {
+        if (!oneFilesystem)
+        {
+            yield return directory;
+            yield break;
+        }
+        
+        // DriveInfo.GetDrives() returns wrong fs type for /dev
+        var mountPoints = File.ReadAllLines("/proc/mounts")
+            .Select(l => l.Split(' ', 4, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .Select(t => t[1])
+            .OrderByDescending(m => m.Count(c => c == '/'))
+            .ToList();
+        
+        var parentMountPoint = mountPoints.Contains(directory)
+            ? directory
+            : mountPoints
+                .First(m => PathUtils.IsParentDirectory(m, directory, true));
+        
+        var ignoreMountPoints = mountPoints
+            .Except(new[] { parentMountPoint })
+            .Where(m => PathUtils.IsParentDirectory(parentMountPoint, m, true))
+            .ToList();
+        
+        IEnumerable<string> EnumerateDirectoriesInternal(string dir)
+        {
+            var ignoredDirs = new List<string>();
+
+            var subDirs = Directory.GetDirectories(dir, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = false,
+                AttributesToSkip = FileAttributes.Device | FileAttributes.ReparsePoint,
+                IgnoreInaccessible = !throwIfPermissionDenied
+            });
+
+            foreach (var subDir in subDirs)
+            {
+                if (ignoreMountPoints.Any(mp => string.Equals(mp, subDir) ||
+                                                PathUtils.IsParentDirectory(mp, subDir, true)))
+                {
+                    ignoredDirs.Add(subDir);
+                    continue;
+                }
+                
+                foreach (var sDir in EnumerateDirectories(subDir))
+                {
+                    yield return sDir;
+                }
+            }
+
+            if (ignoredDirs.Count == 0)
+            {
+                yield return dir;
+            }
+            else
+            {
+                foreach (var subDir in subDirs.Except(ignoredDirs))
+                {
+                    yield return subDir;
+                }
+            }
+        }
+
+        foreach (var dir in EnumerateDirectoriesInternal(directory))
+        {
+            yield return dir;
+        }
+    }
 
     public Filesystem(string? tempDirectory = null)
     {
@@ -76,71 +99,14 @@ public class Filesystem : IFilesystem, IDisposable
         }
     }
 
-    public IEnumerable<string> GetFiles(string directory, bool throwIfPermissionDenied = false, bool followSymlinks = false)
+    public IEnumerable<string> GetFiles(string directory, bool throwIfPermissionDenied = false, bool followSymlinks = false, bool oneFilesystem = false)
     {
-        // DriveInfo.GetDrives() returns wrong fs type for /dev
-        var ignoreMountPointsRaw = File.ReadAllLines("/proc/mounts")
-            .Select(l => l.Split(' ', 4, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-            .Where(t => s_ignoreFsTypes.Contains(t[2]))
-            .Select(t => t[1])
-            .ToList();
-
-        var ignoreMountPoints = ignoreMountPointsRaw
-            .OrderByDescending(m => m.Length)
-            .Where(m => !ignoreMountPointsRaw.Any(t => m.StartsWith(t) && t != m))
-            .ToList();
-
-        IEnumerable<string> EnumerateDirectories(string dir)
-        {
-            var containsExcludedDirs = false;
-            var ignoredDirs = new List<string>();
-
-            var subDirs = Directory.GetDirectories(dir, "*", new EnumerationOptions
-            {
-                RecurseSubdirectories = false,
-                AttributesToSkip = FileAttributes.Device | FileAttributes.ReparsePoint,
-                IgnoreInaccessible = !throwIfPermissionDenied
-            });
-
-            foreach (var subDir in subDirs)
-            {
-                if (ignoreMountPoints.Any(mp => mp.Equals(subDir)))
-                {
-                    containsExcludedDirs = true;
-                    ignoredDirs.Add(subDir);
-                    continue;
-                }
-
-                if (ignoreMountPoints.Any(mp => mp.StartsWith(subDir)))
-                {
-                    containsExcludedDirs = true;
-                    ignoredDirs.Add(subDir);
-                    foreach (var sDir in EnumerateDirectories(subDir))
-                    {
-                        yield return sDir;
-                    }
-                }
-            }
-
-            if (!containsExcludedDirs)
-            {
-                yield return dir;
-            }
-            else
-            {
-                foreach (var subDir in subDirs.Except(ignoredDirs))
-                {
-                    yield return subDir;
-                }
-            }
-        }
-
-        return EnumerateDirectories(directory)
+        return EnumerateDirectories(directory, throwIfPermissionDenied, oneFilesystem)
             .SelectMany(d => new FileSystemEnumerable<string>(d, (ref FileSystemEntry entry) => entry.ToFullPath(), new EnumerationOptions
             {
                 RecurseSubdirectories = true,
                 AttributesToSkip = FileAttributes.Device,
-                IgnoreInaccessible = true,
+                IgnoreInaccessible = !throwIfPermissionDenied,
                 ReturnSpecialDirectories = false
             })
             {

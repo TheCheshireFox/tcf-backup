@@ -6,6 +6,8 @@ public static class AppEnvironment
 {
     public const string TcfConfigDirectory = "/etc/tcf-backup";
     public const string TcfPersistentDirectory = "/var/lib/tcf-backup";
+    
+    public const string GlobalConfiguration = $"{TcfConfigDirectory}/global.yaml";
 
     public static void Initialize(IFilesystem fs)
     {

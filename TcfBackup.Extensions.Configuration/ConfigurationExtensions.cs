@@ -1,11 +1,16 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 
-namespace TcfBackup.Factory;
+namespace TcfBackup.Extensions.Configuration;
 
-public static class ConfigExtensions
+public static class ConfigurationExtensions
 {
+    public static IConfiguration Merge(this IConfiguration target, IConfiguration source)
+    {
+        return (IConfigurationRoot)new ConfigurationManager()
+            .AddConfiguration(target)
+            .AddConfiguration(source);
+    }
+    
     public static bool ContainsKey(this IConfiguration configuration, string name) => configuration.GetSection(name).Exists();
 
     public static object Get(this IConfiguration configuration, Func<IConfiguration, Type> typeSelector, string key)

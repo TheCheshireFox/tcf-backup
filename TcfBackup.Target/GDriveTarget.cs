@@ -20,14 +20,14 @@ public class GDriveTarget : ITarget
         _directoryId = path != null ? _gDriveAdapter.CreateDirectory(path) : null;
     }
 
-    public void Apply(ISource source)
+    public void Apply(ISource source, CancellationToken cancellationToken)
     {
         foreach (var file in source.GetFiles())
         {
             _logger.Information("Uploading {path}...", file.Path);
 
             using var stream = _fs.OpenRead(file.Path);
-            _gDriveAdapter.UploadFile(stream, Path.GetFileName(file.Path), _directoryId);
+            _gDriveAdapter.UploadFile(stream, Path.GetFileName(file.Path), _directoryId, cancellationToken);
 
             _logger.Information("Complete");
         }

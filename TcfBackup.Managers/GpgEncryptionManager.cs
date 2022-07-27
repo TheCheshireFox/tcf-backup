@@ -100,7 +100,7 @@ public class GpgEncryptionManager : IEncryptionManager
         }
     }
     
-    public void Encrypt(string src, string dst)
+    public void Encrypt(string src, string dst, CancellationToken cancellationToken)
     {
         using var gpgContext = PrepareContext();
 
@@ -111,11 +111,21 @@ public class GpgEncryptionManager : IEncryptionManager
 
         gpgContext.Context.Armor = true;
 
+        using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
+
         _logger.Information("Encryption of file {Source} to {Target}...", src, dst);
-        gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
+        try
+        {
+            gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
+        }
+        catch (Exception)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
     }
 
-    public void Decrypt(string src, string dst)
+    public void Decrypt(string src, string dst, CancellationToken cancellationToken)
     {
         using var gpgContext = PrepareContext();
 
@@ -124,7 +134,17 @@ public class GpgEncryptionManager : IEncryptionManager
         using var dstRawStream = _fs.OpenWrite(dst);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
+        using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
+        
         _logger.Information("Decryption of file {Source} to {Target}...", src, dst);
-        gpgContext.Context.Decrypt(srcStream, dstStream);
+        try
+        {
+            gpgContext.Context.Decrypt(srcStream, dstStream);
+        }
+        catch (Exception)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
     }
 }

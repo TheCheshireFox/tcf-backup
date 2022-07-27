@@ -7,10 +7,7 @@ using TcfBackup.Action;
 using TcfBackup.Configuration.Action;
 using TcfBackup.Configuration.Source;
 using TcfBackup.Configuration.Target;
-using TcfBackup.Factory.Manager.Btrfs;
-using TcfBackup.Factory.Manager.Compression;
-using TcfBackup.Factory.Manager.Encryption;
-using TcfBackup.Factory.Manager.Lxd;
+using TcfBackup.Extensions.Configuration;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Source;
@@ -39,39 +36,53 @@ public class BackupConfigFactory : IFactory
     private readonly IFilesystem _fs;
     private readonly IGDriveAdapter _gDriveAdapter;
 
-    private readonly BtrfsManagerFactoryScoped _btrfsManagerFactoryScoped;
-    private readonly LxdManagerFactoryScoped _lxdManagerFactoryScoped;
-    private readonly CompressionManagerFactoryScoped _compressionManagerFactoryScoped;
-    private readonly EncryptionManagerFactoryScoped _encryptionManagerFactoryScoped;
+    private IEncryptionManager CreateGpgEncryptionManager(GpgEncryptionActionOptions opts)
+    {
+        if (string.IsNullOrEmpty(opts.KeyFile) && string.IsNullOrEmpty(opts.Signature))
+        {
+            throw new FormatException("No keyfile or signature specified for encryption manager.");
+        }
 
+        if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.Signature))
+        {
+            throw new FormatException("Both the keyfile and signature are specified. You can choose only one.");
+        }
+
+        if (!string.IsNullOrEmpty(opts.KeyFile))
+        {
+            return GpgEncryptionManager.CreateWithKeyFile(_logger, _fs, opts.KeyFile, opts.Password);
+        }
+
+        if (!string.IsNullOrEmpty(opts.Signature))
+        {
+            return GpgEncryptionManager.CreateWithSignature(_logger, _fs, opts.Signature, opts.Password);
+        }
+
+        throw new NotSupportedException("Specified gpg configuration not supported");
+    }
+    
     private IBtrfsManager CreateBtrfsManager()
     {
-        return _btrfsManagerFactoryScoped.Create(BtrfsManagerType.Executable);
+        return new BtrfsManager();
     }
 
     private ICompressionManager CreateCompressionManager()
     {
-        return _compressionManagerFactoryScoped.Create(CompressionManagerType.TarExecutable);
+        return new TarCompressionManager(_logger, _fs);
     }
 
     private IEncryptionManager CreateEncryptionManager(EncryptionActionOptions opts)
     {
         return opts switch
         {
-            GpgEncryptionActionOptions gpgOpts => _encryptionManagerFactoryScoped.Create(new EncryptionManagerOptions
-            {
-                Type = EncryptionManagerType.GpgLib,
-                Password = opts.Password,
-                KeyFile = opts.KeyFile,
-                Signature = gpgOpts.Signature
-            }),
+            GpgEncryptionActionOptions gpgOpts => CreateGpgEncryptionManager(gpgOpts),
             _ => throw new ArgumentOutOfRangeException(nameof(opts), opts, null)
         };
     }
 
     private ILxdManager CreateLxdManager()
     {
-        return _lxdManagerFactoryScoped.Create(LxdManagerType.Executable);
+        return new LxdManager();
     }
     
     private IAction CreateCompressAction(CompressActionOptions opts)
@@ -103,7 +114,7 @@ public class BackupConfigFactory : IFactory
             throw new FormatException("Filter action should have at least include or exclude regex string");
         }
 
-        return new FilterAction(_logger, opts.Include ?? Array.Empty<string>(), opts.Exclude, opts.FollowSymlinks);
+        return new FilterAction(_logger, _fs, opts.Include ?? Array.Empty<string>(), opts.Exclude, opts.FollowSymlinks);
     }
 
     private IAction CreateRenameAction(RenameActionOptions opts)
@@ -135,10 +146,6 @@ public class BackupConfigFactory : IFactory
 
     public BackupConfigFactory(ILogger logger,
         IFilesystem fs,
-        BtrfsManagerFactoryScoped btrfsManagerFactoryScoped,
-        LxdManagerFactoryScoped lxdManagerFactoryScoped,
-        CompressionManagerFactoryScoped compressionManagerFactoryScoped,
-        EncryptionManagerFactoryScoped encryptionManagerFactoryScoped,
         IGDriveAdapter gDriveAdapter,
         IConfiguration config)
     {
@@ -146,11 +153,6 @@ public class BackupConfigFactory : IFactory
         _logger = logger;
         _fs = fs;
         _gDriveAdapter = gDriveAdapter;
-        
-        _btrfsManagerFactoryScoped = btrfsManagerFactoryScoped;
-        _lxdManagerFactoryScoped = lxdManagerFactoryScoped;
-        _compressionManagerFactoryScoped = compressionManagerFactoryScoped;
-        _encryptionManagerFactoryScoped = encryptionManagerFactoryScoped;
 
         if (_config == null)
         {

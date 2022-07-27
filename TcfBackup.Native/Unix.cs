@@ -151,7 +151,5 @@ public static class Unix
     {
         var srcFileInfo = new System.IO.FileInfo(src);
         srcFileInfo.MoveTo(dst, overwrite);
-
-        CopyPermissions(src, dst);
     }
 }

@@ -62,7 +62,7 @@ public class DirSourceTest
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
+        fsMock.Setup(fs => fs.GetFiles(Directory, false, false, false)).Returns(files.ToArray());
 
         var source = new DirSource(logger, fsMock.Object, Directory);
 
@@ -82,7 +82,7 @@ public class DirSourceTest
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Directory)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(Directory, false, false)).Returns(files.ToArray());
+        fsMock.Setup(fs => fs.GetFiles(Directory, false, false, false)).Returns(files.ToArray());
 
         var source = new DirSource(logger, fsMock.Object, Directory);
 

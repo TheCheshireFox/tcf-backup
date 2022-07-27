@@ -15,7 +15,7 @@ public class DecryptAction : IAction
         _encryptionManager = encryptionManager;
     }
 
-    public ISource Apply(ISource source)
+    public ISource Apply(ISource source, CancellationToken cancellationToken)
     {
         var tmpDirSource = new TempDirectoryFileListSource(_filesystem, _filesystem.CreateTempDirectory());
         try
@@ -24,7 +24,7 @@ public class DecryptAction : IAction
 
             foreach (var (src, dst) in decryptedFiles)
             {
-                _encryptionManager.Decrypt(src.Path, dst);
+                _encryptionManager.Decrypt(src.Path, dst, cancellationToken);
             }
 
             return tmpDirSource;

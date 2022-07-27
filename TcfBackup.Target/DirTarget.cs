@@ -14,10 +14,11 @@ public class DirTarget : ITarget
         _overwrite = overwrite;
     }
 
-    public void Apply(ISource source)
+    public void Apply(ISource source, CancellationToken cancellationToken)
     {
         foreach (var file in source.GetFiles())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             file.Move(Path.Combine(_dir, Path.GetFileName(file.Path)), _overwrite);
         }
     }

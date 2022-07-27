@@ -4,5 +4,5 @@ namespace TcfBackup.Action;
 
 public interface IAction
 {
-    ISource Apply(ISource source);
+    ISource Apply(ISource source, CancellationToken cancellationToken);
 }

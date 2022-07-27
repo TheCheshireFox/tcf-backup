@@ -3,9 +3,9 @@ using System.IO;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using TcfBackup.CmdlineOptions;
 using TcfBackup.Shared;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace TcfBackup.Configuration;
 
@@ -41,7 +41,7 @@ public static class ConfigurationFactory
             {
                 var deserializer = new DeserializerBuilder()
                     .IgnoreUnmatchedProperties()
-                    .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                    //.WithNamingConvention(UnderscoredNamingConvention.Instance)
                     .Build();
 
                 using var ms = new MemoryStream();
@@ -65,6 +65,7 @@ public static class ConfigurationFactory
         }
     }
 
-    public static IConfiguration CreateBackupConfiguration(BackupOptions? opts) => ReadConfiguration(opts?.ConfigurationFile);
-    public static IConfiguration CreateRestoreConfiguration(RestoreOptions? opts) => ReadConfiguration(opts?.ConfigurationFile);
+    public static IConfiguration CreateConfiguration(string? path) => ReadConfiguration(path);
+    public static IConfiguration CreateBackupConfiguration(BackupOptions? opts) => CreateConfiguration(opts?.ConfigurationFile);
+    public static IConfiguration CreateRestoreConfiguration(RestoreOptions? opts) => CreateConfiguration(opts?.ConfigurationFile);
 }

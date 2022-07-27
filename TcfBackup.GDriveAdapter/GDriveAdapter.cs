@@ -134,7 +134,7 @@ public class GDriveAdapter : IGDriveAdapter
         return directoryId;
     }
 
-    public void UploadFile(Stream stream, string name, string? parentDirectoryId = null)
+    public void UploadFile(Stream stream, string name, string? parentDirectoryId = null, CancellationToken cancellationToken = default)
     {
         var cmu = _driveService.Value.Files.Create(new Google.Apis.Drive.v3.Data.File
         {
@@ -175,7 +175,7 @@ public class GDriveAdapter : IGDriveAdapter
             lastTotal = uploadProgress.BytesSent;
         };
 
-        var uploadProgress = cmu.Upload();
+        var uploadProgress = cmu.UploadAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 
         if (uploadProgress.Status != UploadStatus.Completed)
         {

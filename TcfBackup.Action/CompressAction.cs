@@ -42,7 +42,7 @@ public class CompressAction : IAction
         _followSymlinks = followSymlinks;
     }
 
-    public ISource Apply(ISource source)
+    public ISource Apply(ISource source, CancellationToken cancellationToken)
     {
         var archiveName = string.IsNullOrEmpty(_archiveName)
             ? StringExtensions.GenerateRandomString(8) + AlgorithmToExtension()
@@ -52,10 +52,10 @@ public class CompressAction : IAction
 
         var archiveFile = _filesystem.CreateTempFile(archiveName, true);
 
-        var files = source.GetFiles();
+        var files = source.GetFiles(_followSymlinks);
 
         _logger.Information("Compressing files with algorithm {algo}", _compressAlgorithm);
-        _compressionManager.Compress(_compressAlgorithm, archiveFile, files.Select(f => f.Path).ToArray(), _changeDir, _followSymlinks);
+        _compressionManager.Compress(_compressAlgorithm, archiveFile, files.Select(f => f.Path).ToList(), _changeDir, _followSymlinks, cancellationToken);
         _logger.Information("Complete");
 
         return FilesListSource.CreateMutable(_filesystem, new[] { archiveFile });

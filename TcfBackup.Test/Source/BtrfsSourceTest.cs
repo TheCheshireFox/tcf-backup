@@ -128,7 +128,7 @@ public class BtrfsSourceTest
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Subvolume)).Returns(true);
         fsMock.Setup(fs => fs.DirectoryExists(SnapshotDir)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(SnapshotSubvolume, false, false)).Returns(files.ToArray());
+        fsMock.Setup(fs => fs.GetFiles(SnapshotSubvolume, false, false, false)).Returns(files.ToArray());
 
         var btrfsSource = new BtrfsSource(logger, btrfsManagerMock.Object, fsMock.Object, Subvolume, SnapshotDir);
 
@@ -149,7 +149,7 @@ public class BtrfsSourceTest
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Subvolume)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(Subvolume, false, false)).Returns(files.ToArray());
+        fsMock.Setup(fs => fs.GetFiles(Subvolume, false, false, false)).Returns(files.ToArray());
 
         var btrfsSource = new BtrfsSource(logger, btrfsManagerMock.Object, fsMock.Object, Subvolume, null);
 
@@ -173,7 +173,7 @@ public class BtrfsSourceTest
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Subvolume)).Returns(true);
         fsMock.Setup(fs => fs.DirectoryExists(SnapshotDir)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(It.IsAny<string>(), false, false)).Returns(files);
+        fsMock.Setup(fs => fs.GetFiles(It.IsAny<string>(), false, false, false)).Returns(files);
 
         var btrfsSource = new BtrfsSource(logger, btrfsManagerMock.Object, fsMock.Object, Subvolume, SnapshotDir);
 
@@ -195,7 +195,7 @@ public class BtrfsSourceTest
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
         fsMock.Setup(fs => fs.DirectoryExists(Subvolume)).Returns(true);
-        fsMock.Setup(fs => fs.GetFiles(It.IsAny<string>(), false, false)).Returns(files);
+        fsMock.Setup(fs => fs.GetFiles(It.IsAny<string>(), false, false, false)).Returns(files);
 
         var btrfsSource = new BtrfsSource(logger, btrfsManagerMock.Object, fsMock.Object, Subvolume, null);
 

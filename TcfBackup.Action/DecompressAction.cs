@@ -15,14 +15,14 @@ public class DecompressAction : IAction
         _filesystem = filesystem;
     }
 
-    public ISource Apply(ISource source)
+    public ISource Apply(ISource source, CancellationToken cancellationToken)
     {
         var tmpDirSource = new TempDirectoryFileListSource(_filesystem, _filesystem.CreateTempDirectory());
         try
         {
             foreach (var file in source.GetFiles())
             {
-                _ = _compressionManager.Decompress(file.Path, tmpDirSource.Directory);
+                _ = _compressionManager.Decompress(file.Path, tmpDirSource.Directory, cancellationToken);
             }
         }
         catch
