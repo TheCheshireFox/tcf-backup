@@ -7,3 +7,4 @@ publish/
 .idea/
 publish-debug.sh
 TcfBackup.GDriveAdapter/credentials.json
+TcfBackup.GDriveAdapter/GDriveClientSecrets.cs
