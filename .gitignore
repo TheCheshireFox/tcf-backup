@@ -6,3 +6,4 @@ riderModule.iml
 publish/
 .idea/
 publish-debug.sh
+TcfBackup/TcfBackup.GDriveAdapter/credentials.json
