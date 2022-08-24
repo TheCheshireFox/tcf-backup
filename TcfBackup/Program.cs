@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using CommandLine;
+using LinqToDB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -9,6 +10,7 @@ using Serilog.Events;
 using TcfBackup.CmdlineOptions;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
+using TcfBackup.Database;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Factory;
 using TcfBackup.Filesystem;
@@ -138,8 +140,6 @@ public static class Program
 
     public static void Main(string[] args)
     {
-        ParsedGoogleAuth(new GoogleAuthOptions());
-        
         Parser.Default
             .ParseArguments<BackupOptions, RestoreOptions, GoogleAuthOptions>(args)
             .WithParsed<BackupOptions>(ParsedBackup)

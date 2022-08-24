@@ -8,6 +8,8 @@ public class DirTarget : ITarget
     private readonly string _dir;
     private readonly bool _overwrite;
 
+    public string Directory => _dir;
+    
     public DirTarget(IFilesystem filesystem, string dir, bool overwrite)
     {
         filesystem.CreateDirectory(_dir = dir);

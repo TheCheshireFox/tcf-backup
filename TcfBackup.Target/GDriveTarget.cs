@@ -12,8 +12,12 @@ public class GDriveTarget : ITarget
     private readonly IFilesystem _fs;
     private readonly string? _directoryId;
 
+    public string Directory { get; }
+    
     public GDriveTarget(ILogger logger, IGDriveAdapter gDriveAdapter, IFilesystem fs, string? path)
     {
+        Directory = path ?? "/";
+        
         _logger = logger.ForContextShort<GDriveTarget>();
         _gDriveAdapter = gDriveAdapter;
         _fs = fs;
