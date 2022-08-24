@@ -114,6 +114,8 @@ public static class Program
 
     private static void ParsedGoogleAuth(GoogleAuthOptions opts)
     {
+        WaitDebugger(opts);
+        
         var di = new ServiceCollection()
             .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
             .AddTransientFromFactory<LoggerFactory, ILogger>()
@@ -136,6 +138,8 @@ public static class Program
 
     public static void Main(string[] args)
     {
+        ParsedGoogleAuth(new GoogleAuthOptions());
+        
         Parser.Default
             .ParseArguments<BackupOptions, RestoreOptions, GoogleAuthOptions>(args)
             .WithParsed<BackupOptions>(ParsedBackup)

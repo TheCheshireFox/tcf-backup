@@ -5,9 +5,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Requests;
 using Google.Apis.Auth.OAuth2.Responses;
+using Google.Apis.Auth.OAuth2.Web;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Upload;
@@ -28,6 +30,35 @@ public class GDriveAdapter : IGDriveAdapter
         }
 
         public string RedirectUri => "";
+    }
+
+    private class LocalhostCodeReceiver : ICodeReceiver
+    {
+        public Task<AuthorizationCodeResponseUrl> ReceiveCodeAsync(AuthorizationCodeRequestUrl url, CancellationToken taskCancellationToken)
+        {
+            Console.WriteLine("Please visit url below:");
+            Console.WriteLine(url.Build().ToString());
+
+            while (true)
+            {
+                Console.WriteLine("Please enter redirect url: ");
+                var redirectUrlStr = Console.ReadLine();
+
+                try
+                {
+                    var redirectUrl = new Uri(redirectUrlStr!);
+                    var query = HttpUtility.ParseQueryString(redirectUrl.Query);
+                    
+                    return Task.FromResult(new AuthorizationCodeResponseUrl { Code = query["code"] });
+                }
+                catch (Exception)
+                {
+                    // NOP
+                }
+            }
+        }
+
+        public string RedirectUri => "http://localhost:1";
     }
 
     private const string AppName = "Backup Service Client";
@@ -51,7 +82,7 @@ public class GDriveAdapter : IGDriveAdapter
     private static DriveService Authenticate(ICodeReceiver codeReceiver)
     {
         var credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-            GoogleClientSecrets.FromStream(LoadEmbeddedResource(CredentialsResourceFile)).Secrets,
+            GoogleClientSecrets.ClientSecrets,
             s_scopes,
             AppName,
             CancellationToken.None,
@@ -72,7 +103,7 @@ public class GDriveAdapter : IGDriveAdapter
 
     public void Authorize()
     {
-        _driveService = new Lazy<DriveService>(Authenticate(new PromptCodeReceiver()));
+        _driveService = new Lazy<DriveService>(Authenticate(new LocalhostCodeReceiver()));
     }
 
     public string? CreateDirectory(string path)

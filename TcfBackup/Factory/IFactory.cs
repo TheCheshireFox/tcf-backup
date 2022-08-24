@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TcfBackup.Action;
+using TcfBackup.Restore;
 using TcfBackup.Source;
 using TcfBackup.Target;
 

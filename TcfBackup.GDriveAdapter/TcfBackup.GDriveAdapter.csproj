@@ -14,16 +14,31 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.55.0.2453"/>
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.57.0.2746" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj"/>
-        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj"/>
+        <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj" />
+        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="credentials.json"/>
+        <EmbeddedResource Include="credentials.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="GDriveClientSecrets.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>GDriveClientSecrets.cs</LastGenOutput>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="GDriveClientSecrets.cs">
+        <AutoGen>True</AutoGen>
+        <DesignTime>True</DesignTime>
+        <DependentUpon>GDriveClientSecrets.tt</DependentUpon>
+      </Compile>
     </ItemGroup>
 
 </Project>

@@ -10,13 +10,14 @@ using TcfBackup.Configuration.Target;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
+using TcfBackup.Restore;
 using TcfBackup.Source;
 using TcfBackup.Target;
 using CompressAlgorithm = TcfBackup.Managers.CompressAlgorithm;
 
 namespace TcfBackup.Factory;
 
-public class BackupConfigFactory : IFactory
+public class BackupConfigFactory : IFactory, IRestoreInfoFactory
 {
     private static readonly Dictionary<SourceType, Type> s_sourceTypeMapping = new()
     {
@@ -60,7 +61,7 @@ public class BackupConfigFactory : IFactory
 
         throw new NotSupportedException("Specified gpg configuration not supported");
     }
-    
+
     private IBtrfsManager CreateBtrfsManager()
     {
         return new BtrfsManager();
@@ -84,7 +85,7 @@ public class BackupConfigFactory : IFactory
     {
         return new LxdManager();
     }
-    
+
     private IAction CreateCompressAction(CompressActionOptions opts)
     {
         var algo = opts.Algorithm switch
@@ -99,7 +100,8 @@ public class BackupConfigFactory : IFactory
             _ => throw new NotSupportedException($"Compression algorithm {opts.Algorithm} not supported")
         };
 
-        return new CompressAction(_logger, CreateCompressionManager(), _fs, algo, opts.Name, opts.ChangeDir, opts.FollowSymlinks);
+        return new CompressAction(_logger, CreateCompressionManager(), _fs, algo, opts.Name, opts.ChangeDir,
+            opts.FollowSymlinks);
     }
 
     private IAction CreateEncryptAction(EncryptionActionOptions opts)
@@ -138,11 +140,21 @@ public class BackupConfigFactory : IFactory
             {
                 EncryptionEngine.Openssl => typeof(OpensslEncryptionActionOptions),
                 EncryptionEngine.Gpg => typeof(GpgEncryptionActionOptions),
-                _ => throw new NotSupportedException($"Encryption engine {cfg.GetValue<EncryptionEngine>("engine")} not supported")
+                _ => throw new NotSupportedException(
+                    $"Encryption engine {cfg.GetValue<EncryptionEngine>("engine")} not supported")
             },
             var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction} not supported")
         };
     }
+
+    private TargetOptions GetTargetOptions() =>
+        (TargetOptions)_config.Get(cfg => s_targetTypeMapping[cfg.GetValue<TargetType>("type")], "target");
+
+    private SourceOptions GetSourceOptions() =>
+        (SourceOptions)_config.Get(cfg => s_sourceTypeMapping[cfg.GetValue<SourceType>("type")], "source");
+
+    private IEnumerable<ActionOptions> GetActionOptions() =>
+        _config.GetSection("actions").GetChildren().Select(s => (ActionOptions)s.Get(GetActionOptionsType));
 
     public BackupConfigFactory(ILogger logger,
         IFilesystem fs,
@@ -169,9 +181,11 @@ public class BackupConfigFactory : IFactory
         var source = (SourceOptions)_config.Get(cfg => s_sourceTypeMapping[cfg.GetValue<SourceType>("type")], "source");
         return source switch
         {
-            BtrfsSourceOptions btrfsOpts => new BtrfsSource(_logger, CreateBtrfsManager(), _fs, btrfsOpts.Subvolume, btrfsOpts.SnapshotDir),
+            BtrfsSourceOptions btrfsOpts => new BtrfsSource(_logger, CreateBtrfsManager(), _fs, btrfsOpts.Subvolume,
+                btrfsOpts.SnapshotDir),
             DirectorySourceOptions dirOpts => new DirSource(_logger, _fs, dirOpts.Path),
-            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(), _fs, lxdOpts.Containers, lxdOpts.IgnoreMissing),
+            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(), _fs, lxdOpts.Containers,
+                lxdOpts.IgnoreMissing),
             var notSupportedSource => throw new NotSupportedException($"Source {notSupportedSource.Type} not supported")
         };
     }
@@ -197,6 +211,50 @@ public class BackupConfigFactory : IFactory
             DirectoryTargetOptions dirOpts => new DirTarget(_fs, dirOpts.Path, dirOpts.Overwrite),
             GDriveTargetOptions gDriveOpts => new GDriveTarget(_logger, _gDriveAdapter, _fs, gDriveOpts.Path),
             var notSupportedTarget => throw new NotSupportedException($"Target {notSupportedTarget.Type} not supported")
+        };
+    }
+
+    public IRestoreSourceInfo GetRestoreSourceInfo()
+    {
+        return GetTargetOptions() switch
+        {
+            DirectoryTargetOptions opts => new DirRestoreSourceInfo { Directory = opts.Path },
+            GDriveTargetOptions opts => new GDriveRestoreSourceInfo { Directory = opts.Path },
+            var notSupportedTarget => throw new NotSupportedException($"Target {notSupportedTarget.Type} not supported")
+        };
+    }
+
+    public IEnumerable<IRestoreActionInfo> GetRestoreActionInfo()
+    {
+        return GetActionOptions()
+            .Select<ActionOptions, IRestoreActionInfo?>(actionOpt => actionOpt switch
+            {
+                CompressActionOptions _ => new DecompressRestoreActionInfo(),
+                EncryptionActionOptions opts => opts switch
+                {
+                    GpgEncryptionActionOptions gpgOpts => new DecryptRestoreActionInfo
+                    {
+                        Password = gpgOpts.Password,
+                        Signature = gpgOpts.Signature,
+                        KeyFile = gpgOpts.KeyFile
+                    },
+                    _ => throw new ArgumentOutOfRangeException(nameof(opts), opts, null)
+                },
+                _ => null
+            })
+            .Where(o => o != null)
+            .Reverse()
+            .Select(o => o!);
+    }
+
+    public IRestoreTargetInfo GetRestoreTargetInfo()
+    {
+        return GetSourceOptions() switch
+        {
+            BtrfsSourceOptions opts => new DirRestoreTargetInfo { Directory = opts.Subvolume },
+            DirectorySourceOptions opts => new DirRestoreTargetInfo { Directory = opts.Path },
+            LxdSourceOptions opts => new LxdRestoreTargetInfo(),
+            var notSupportedSource => throw new NotSupportedException($"Source {notSupportedSource.Type} not supported")
         };
     }
 }

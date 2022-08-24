@@ -12,7 +12,7 @@ public class RenameAction : IAction
     private static readonly Dictionary<string, Func<string, string?, string>> s_templateReplacers = new()
     {
         { "filename", FormatFilename },
-        { "filename_without_ext", FormatFilenameWithoutExt },
+        { "filename_wext", FormatFilenameWithoutExt },
         { "ext", FormatExtension },
         { "date", FormatDate }
     };
