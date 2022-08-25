@@ -4,8 +4,8 @@ namespace TcfBackup.Database;
 
 internal class ConnectionStringSettings : IConnectionStringSettings
 {
-    public string ConnectionString { get; set; }
-    public string Name { get; set; }
-    public string ProviderName { get; set; }
+    public string ConnectionString { get; init; } = null!;
+    public string Name { get; init; } = null!;
+    public string ProviderName { get; init; } = null!;
     public bool IsGlobal => false;
 }

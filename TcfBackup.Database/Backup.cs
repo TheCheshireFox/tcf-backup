@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using LinqToDB.Mapping;
 
 namespace TcfBackup.Database;
 
 [Table]
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 public class Backup
 {
     [PrimaryKey, Identity]
@@ -12,5 +14,5 @@ public class Backup
     public DateTime Date { get; set; }
     
     [Column]
-    public string Path { get; set; }
+    public string Path { get; set; } = null!;
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using LinqToDB;
 using LinqToDB.Data;
@@ -5,6 +6,7 @@ using LinqToDB.SqlQuery;
 
 namespace TcfBackup.Database;
 
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 public class BackupDb : DataConnection
 {
     static BackupDb()
@@ -33,6 +35,8 @@ public class BackupDb : DataConnection
         });
     }
     
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(ITable<>))]
+    [UnconditionalSuppressMessage("AssemblyLoadTrimming", "IL2075")]
     private string GetTableName(PropertyInfo propertyInfo)
     {
         var table = propertyInfo.GetValue(this)!;
@@ -53,13 +57,8 @@ public class BackupDb : DataConnection
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(ITable<>))
             .ToDictionary(GetTableName, GetTableType);
 
-        foreach (var table in tables)
+        foreach (var table in tables.Where(table => dbSchema.Tables.All(t => t.TableName != table.Key)))
         {
-            if (dbSchema.Tables.Any(t => t.TableName == table.Key))
-            {
-                continue;
-            }
-
             CreateTable(table.Value);
         }
     }
