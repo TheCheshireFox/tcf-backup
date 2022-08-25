@@ -1,16 +1,16 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using CommandLine;
-using LinqToDB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using TcfBackup.CmdlineOptions;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
-using TcfBackup.Database;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Factory;
 using TcfBackup.Filesystem;
@@ -22,8 +22,8 @@ namespace TcfBackup;
 
 public class LoggerOptions
 {
-    public LogEventLevel LogLevel { get; set; }
-    public string Format { get; set; } = "[{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}";
+    public LogEventLevel LogLevel { get; private set; }
+    public string Format { get; } = "[{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}";
 
     public void Fill(GenericOptions opts)
     {
@@ -36,6 +36,7 @@ public class LoggerOptions
     }
 }
 
+[SuppressMessage("ReSharper", "ExceptionPassedAsTemplateArgumentProblem")]
 public static class Program
 {
     private static void WaitDebugger(GenericOptions opts)
@@ -65,6 +66,7 @@ public static class Program
         return opts;
     }
 
+    [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
     private static void PerformBackup(GenericOptions opts, string configurationFile)
     {
         var globalConfig = ConfigurationFactory.CreateConfiguration(AppEnvironment.GlobalConfiguration);
@@ -87,33 +89,39 @@ public static class Program
 
         AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
 
-        try
-        {
-            var manager = dp.CreateService<BackupManager>();
-            var interruptionHandler = new InterruptionHandler();
+        var manager = dp.CreateService<BackupManager>();
+        var interruptionHandler = new InterruptionHandler();
 
-            manager.Backup(interruptionHandler.Token);
-        }
-        catch (Exception e)
-        {
-            if (e is OperationCanceledException)
-            {
-                dp.GetService<ILogger>()!.Information("Operation cancelled");
-            }
-            else
-            {
-                dp.GetService<ILogger>()!.Fatal("{exc}", e);
-            }
-        }
+        manager.Backup(interruptionHandler.Token);
     }
     
     private static void ParsedBackup(BackupOptions opts)
     {
         WaitDebugger(opts);
 
-        foreach (var configFile in opts.ConfigurationFiles)
+        try
         {
-            PerformBackup(opts, configFile);
+            foreach (var configFile in opts.ConfigurationFiles)
+            {
+                PerformBackup(opts, configFile);
+            }
+        }
+        catch (Exception e)
+        {
+            var loggerOpts = new LoggerOptions();
+            loggerOpts.Fill(opts);
+
+            var loggerFactory = new LoggerFactory(new OptionsWrapper<LoggerOptions>(loggerOpts));
+            var logger = loggerFactory.Create();
+            
+            if (e is OperationCanceledException)
+            {
+                logger.Information("Operation cancelled");
+            }
+            else
+            {
+                logger.Fatal("{Exception}", e);
+            }
         }
     }
 
@@ -142,7 +150,7 @@ public static class Program
         }
         catch (Exception e)
         {
-            dp.GetService<ILogger>()!.Fatal("{exc}", e);
+            dp.GetService<ILogger>()!.Fatal("{Exception}", e);
         }
     }
 
