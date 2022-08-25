@@ -64,13 +64,11 @@ public static class Program
 
         return opts;
     }
-    
-    private static void ParsedBackup(BackupOptions opts)
-    {
-        WaitDebugger(opts);
 
+    private static void PerformBackup(GenericOptions opts, string configurationFile)
+    {
         var globalConfig = ConfigurationFactory.CreateConfiguration(AppEnvironment.GlobalConfiguration);
-        var config = ConfigurationFactory.CreateBackupConfiguration(opts);
+        var config = ConfigurationFactory.CreateConfiguration(configurationFile);
         globalConfig = globalConfig.Merge(config.GetSection("global"));
 
         var di = new ServiceCollection()
@@ -106,6 +104,16 @@ public static class Program
             {
                 dp.GetService<ILogger>()!.Fatal("{exc}", e);
             }
+        }
+    }
+    
+    private static void ParsedBackup(BackupOptions opts)
+    {
+        WaitDebugger(opts);
+
+        foreach (var configFile in opts.ConfigurationFiles)
+        {
+            PerformBackup(opts, configFile);
         }
     }
 

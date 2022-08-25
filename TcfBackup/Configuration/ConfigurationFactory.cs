@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using TcfBackup.CmdlineOptions;
 using TcfBackup.Shared;
 using YamlDotNet.Serialization;
 
@@ -66,6 +65,4 @@ public static class ConfigurationFactory
     }
 
     public static IConfiguration CreateConfiguration(string? path) => ReadConfiguration(path);
-    public static IConfiguration CreateBackupConfiguration(BackupOptions? opts) => CreateConfiguration(opts?.ConfigurationFile);
-    public static IConfiguration CreateRestoreConfiguration(RestoreOptions? opts) => CreateConfiguration(opts?.ConfigurationFile);
 }

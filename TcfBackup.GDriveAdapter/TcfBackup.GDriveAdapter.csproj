@@ -39,6 +39,11 @@
         <DesignTime>True</DesignTime>
         <DependentUpon>GDriveClientSecrets.tt</DependentUpon>
       </Compile>
+      <Compile Update="GDriveClientSecrets.cs">
+        <AutoGen>True</AutoGen>
+        <DesignTime>True</DesignTime>
+        <DependentUpon>GDriveClientSecrets.tt</DependentUpon>
+      </Compile>
     </ItemGroup>
 
 </Project>

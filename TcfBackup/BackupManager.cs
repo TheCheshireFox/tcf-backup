@@ -29,7 +29,7 @@ public class BackupManager
         }
     }
 
-    private async Task WriteBackupInfoToDatabase(ISource source, ITarget target, CancellationToken cancellationToken)
+    private static async Task WriteBackupInfoToDatabase(ISource source, ITarget target, CancellationToken cancellationToken)
     {
         var directory = target switch
         {
