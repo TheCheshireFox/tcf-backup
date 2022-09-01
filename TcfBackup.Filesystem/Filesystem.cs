@@ -169,7 +169,7 @@ public class Filesystem : IFilesystem, IDisposable
         }
         else
         {
-            throw new IOException($"Path {path} not found");
+            throw new FileNotFoundException($"Path {path} not found");
         }
     }
 

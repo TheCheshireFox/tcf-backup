@@ -34,4 +34,12 @@ public static class ConfigurationExtensions
 
         return configuration.Get(type);
     }
+
+    public static IConfigurationSection GetSection(this IConfiguration configuration, string name, StringComparison nameComparison)
+    {
+        return configuration
+                   .GetChildren()
+                   .FirstOrDefault(c => string.Equals(c.Key, name, nameComparison))
+               ?? (IConfigurationSection)new ConfigurationSection((IConfigurationRoot)configuration, name);
+    }
 }

@@ -81,4 +81,9 @@ public static class PathUtils
         var ext = GetFullExtension(path);
         return path[..^ext.Length];
     }
+
+    public static string AppendRoot(string path) =>
+        Path.IsPathRooted(path)
+            ? path
+            : Path.Combine(Path.DirectorySeparatorChar.ToString(), path);
 }

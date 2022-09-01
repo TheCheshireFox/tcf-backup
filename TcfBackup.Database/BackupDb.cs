@@ -7,11 +7,27 @@ using LinqToDB.SqlQuery;
 namespace TcfBackup.Database;
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class BackupDb : DataConnection
+internal class BackupDb : DataConnection
 {
+    [UnconditionalSuppressMessage("AssemblyLoadTrimming", "IL2075")]
     static BackupDb()
     {
         DefaultSettings = new LinqToDbSettings();
+        
+        var db = new BackupDb();
+        
+        var schemaProvider = db.DataProvider.GetSchemaProvider();
+        var dbSchema = schemaProvider.GetSchema(db);
+
+        var tables = db.GetType()
+            .GetProperties()
+            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(ITable<>))
+            .ToDictionary(db.GetTableName, db.GetTableType);
+
+        foreach (var table in tables.Where(table => dbSchema.Tables.All(t => t.TableName != table.Key)))
+        {
+            db.CreateTable(table.Value);
+        }
     }
 
     private void CreateTable(Type tableType)
@@ -49,19 +65,10 @@ public class BackupDb : DataConnection
     public BackupDb()
         : base(ProviderName.SQLite)
     {
-        var schemaProvider = DataProvider.GetSchemaProvider();
-        var dbSchema = schemaProvider.GetSchema(this);
 
-        var tables = GetType()
-            .GetProperties()
-            .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(ITable<>))
-            .ToDictionary(GetTableName, GetTableType);
-
-        foreach (var table in tables.Where(table => dbSchema.Tables.All(t => t.TableName != table.Key)))
-        {
-            CreateTable(table.Value);
-        }
     }
 
     public ITable<Backup> Backup => this.GetTable<Backup>();
+    
+    public ITable<BackupFile> BackupFiles => this.GetTable<BackupFile>();
 }

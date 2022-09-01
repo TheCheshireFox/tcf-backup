@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading;
 using CommandLine;
 using Microsoft.Extensions.Configuration;
@@ -11,11 +12,16 @@ using Serilog.Events;
 using TcfBackup.CmdlineOptions;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
+using TcfBackup.Database.Repository;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Factory;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
+using TcfBackup.Retention;
+using TcfBackup.Retention.BackupCleaners;
 using TcfBackup.Shared;
+using RetentionOptions = TcfBackup.CmdlineOptions.RetentionOptions;
+
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace TcfBackup;
@@ -50,32 +56,42 @@ public static class Program
 #endif
     }
 
-    private static GlobalOptions BindGlobalOptions(IConfiguration configuration)
+    private static GlobalOptions BindGlobalOptions(IConfiguration configuration, string name)
     {
         var opts = configuration.Get<GlobalOptions>();
-
-        if (opts.Database != null)
-        {
-            opts.Database = opts.Database.Type switch
-            {
-                DatabaseType.Local => configuration.GetSection("database").Get<LocalDatabase>(),
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        }
-
+        opts.Name = name;
+        
         return opts;
     }
 
-    [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
-    private static void PerformBackup(GenericOptions opts, string configurationFile)
+    private static void OnException(GenericOptions opts, Exception exception)
+    {
+        var loggerOpts = new LoggerOptions();
+        loggerOpts.Fill(opts);
+
+        var loggerFactory = new LoggerFactory(new OptionsWrapper<LoggerOptions>(loggerOpts));
+        var logger = loggerFactory.Create();
+            
+        if (exception is OperationCanceledException)
+        {
+            logger.Information("Operation cancelled");
+        }
+        else
+        {
+            logger.Fatal("{Exception}", exception);
+        }
+    }
+
+    private static IServiceCollection CreateServiceCollection(GenericOptions opts, string configurationFile)
     {
         var globalConfig = ConfigurationFactory.CreateConfiguration(AppEnvironment.GlobalConfiguration);
         var config = ConfigurationFactory.CreateConfiguration(configurationFile);
         globalConfig = globalConfig.Merge(config.GetSection("global"));
 
-        var di = new ServiceCollection()
-            .Configure(globalConfig, BindGlobalOptions)
+        return new ServiceCollection()
+            .Configure(globalConfig, cfg => BindGlobalOptions(cfg, Path.GetFileNameWithoutExtension(configurationFile)))
             .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
+            .Configure<Configuration.Global.RetentionOptions>(globalConfig.GetSection(nameof(GlobalOptions.Retention), StringComparison.InvariantCultureIgnoreCase))
             .AddTransientFromFactory<LoggerFactory, ILogger>()
             .AddSingletonFromFactory<FilesystemFactory, IFilesystem>()
             .AddSingleton<IBtrfsManager, BtrfsManager>()
@@ -83,8 +99,16 @@ public static class Program
             .AddSingleton<ICompressionManager, TarCompressionManager>()
             .AddSingleton<IGDriveAdapter, GDriveAdapter>()
             .AddSingleton<IConfiguration>(config)
-            .AddSingleton<IFactory, BackupConfigFactory>();
-
+            .AddSingleton<IFactory, BackupConfigFactory>()
+            .AddSingleton<IBackupRepository, BackupRepository>()
+            .AddSingleton<IBackupCleanerFactory, BackupCleanerFactory>()
+            .AddSingleton<IRetentionManager, RetentionManager>();
+    }
+    
+    [SuppressMessage("ReSharper", "RedundantTypeArgumentsOfMethod")]
+    private static void PerformBackup(GenericOptions opts, string configurationFile)
+    {
+        var di = CreateServiceCollection(opts, configurationFile);
         using var dp = di.BuildServiceProvider();
 
         AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
@@ -93,6 +117,36 @@ public static class Program
         var interruptionHandler = new InterruptionHandler();
 
         manager.Backup(interruptionHandler.Token);
+    }
+
+    private static void PerformRetention(GenericOptions opts, string configurationFile)
+    {
+        var di = CreateServiceCollection(opts, configurationFile);
+        using var dp = di.BuildServiceProvider();
+        
+        AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
+
+        var retentionManager = dp.GetService<IRetentionManager>()!;
+        var interruptionHandler = new InterruptionHandler();
+
+        retentionManager.PerformCleanupAsync(interruptionHandler.Token).ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+    
+    private static void ParsedRetention(RetentionOptions opts)
+    {
+        WaitDebugger(opts);
+
+        try
+        {
+            foreach (var configFile in opts.ConfigurationFiles)
+            {
+                PerformRetention(opts, configFile);
+            }
+        }
+        catch (Exception e)
+        {
+            OnException(opts, e);
+        }
     }
     
     private static void ParsedBackup(BackupOptions opts)
@@ -108,20 +162,7 @@ public static class Program
         }
         catch (Exception e)
         {
-            var loggerOpts = new LoggerOptions();
-            loggerOpts.Fill(opts);
-
-            var loggerFactory = new LoggerFactory(new OptionsWrapper<LoggerOptions>(loggerOpts));
-            var logger = loggerFactory.Create();
-            
-            if (e is OperationCanceledException)
-            {
-                logger.Information("Operation cancelled");
-            }
-            else
-            {
-                logger.Fatal("{Exception}", e);
-            }
+            OnException(opts, e);
         }
     }
 
@@ -157,7 +198,8 @@ public static class Program
     public static void Main(string[] args)
     {
         Parser.Default
-            .ParseArguments<BackupOptions, RestoreOptions, GoogleAuthOptions>(args)
+            .ParseArguments<RetentionOptions, BackupOptions, RestoreOptions, GoogleAuthOptions>(args)
+            .WithParsed<RetentionOptions>(ParsedRetention)
             .WithParsed<BackupOptions>(ParsedBackup)
             .WithParsed<RestoreOptions>(ParsedRestore)
             .WithParsed<GoogleAuthOptions>(ParsedGoogleAuth);

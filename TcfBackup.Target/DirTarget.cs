@@ -8,6 +8,7 @@ public class DirTarget : ITarget
     private readonly string _dir;
     private readonly bool _overwrite;
 
+    public string Scheme => TargetSchemes.Filesystem;
     public string Directory => _dir;
     
     public DirTarget(IFilesystem filesystem, string dir, bool overwrite)

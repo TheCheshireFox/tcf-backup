@@ -9,4 +9,5 @@ public interface IGDriveAdapter
     string? CreateDirectory(string path);
     void UploadFile(Stream stream, string name, string? parentDirectoryId = null, CancellationToken cancellationToken = default);
     void DownloadFile(string name, string destination, string? parentDirectoryId = null);
+    void DeleteFile(string path);
 }

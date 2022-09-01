@@ -5,14 +5,17 @@ namespace TcfBackup.Database;
 
 [Table]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class Backup
+internal class Backup
 {
     [PrimaryKey, Identity]
-    public int BackupId { get; set; }
+    public int Id { get; set; }
     
+    [Column, LinqToDB.Mapping.NotNull]
+    public string Name { get; set; } = null!;
+
     [Column]
     public DateTime Date { get; set; }
     
-    [Column]
-    public string Path { get; set; } = null!;
+    [Association(ThisKey = nameof(Id), OtherKey = nameof(BackupFile.Id))]
+    public IEnumerable<BackupFile> Files { get; set; } = Enumerable.Empty<BackupFile>();
 }

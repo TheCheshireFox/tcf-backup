@@ -3,10 +3,13 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LinqToDB;
+using Microsoft.Extensions.Options;
 using TcfBackup.Action;
-using TcfBackup.Database;
+using TcfBackup.Configuration.Global;
+using TcfBackup.Database.Repository;
 using TcfBackup.Factory;
+using TcfBackup.Retention;
+using TcfBackup.Shared;
 using TcfBackup.Source;
 using TcfBackup.Target;
 
@@ -14,7 +17,10 @@ namespace TcfBackup;
 
 public class BackupManager
 {
+    private readonly GlobalOptions _globalOptions;
     private readonly IFactory _factory;
+    private readonly IBackupRepository _backupRepository;
+    private readonly IRetentionManager _retentionManager;
 
     private static ISource ApplyAction(ISource source, IAction action, CancellationToken cancellationToken)
     {
@@ -29,37 +35,34 @@ public class BackupManager
         }
     }
 
-    private static async Task WriteBackupInfoToDatabase(ISource source, ITarget target, CancellationToken cancellationToken)
+    private async Task WriteBackups(ITarget target, ISource result, CancellationToken cancellationToken)
     {
-        var directory = target switch
+        var targetDirectory = target.GetTargetDirectory();
+
+        var files = result.GetFiles().Select(f => new BackupFile
         {
-            DirTarget dirTarget => $"file://{dirTarget.Directory}",
-            GDriveTarget gDriveTarget => $"gdrive://{gDriveTarget.Directory}",
-            _ => throw new NotSupportedException(target.GetType().Name)
+            Path = Path.Combine(targetDirectory, PathUtils.AppendRoot(f.Path))
+        });
+
+        var backup = new Backup
+        {
+            Date = DateTime.UtcNow,
+            Name = _globalOptions.Name,
+            Files = files
         };
 
-        await using var db = new BackupDb();
-        await using var trans = await db.BeginTransactionAsync(cancellationToken);
-
-        var now = DateTime.UtcNow;
-        foreach (var file in source.GetFiles())
-        {
-            await db.InsertAsync(new Backup
-            {
-                Date = now,
-                Path = Path.Join(directory, Path.GetFileName(file.Path))
-            }, token: cancellationToken);
-        }
-
-        await trans.CommitAsync(cancellationToken);
+        await _backupRepository.AddBackupAsync(backup, cancellationToken);
     }
     
-    public BackupManager(IFactory factory)
+    public BackupManager(IOptions<GlobalOptions> globalOptions, IFactory factory, IRetentionManager retentionManager, IBackupRepository backupRepository)
     {
+        _globalOptions = globalOptions.Value;
         _factory = factory;
+        _retentionManager = retentionManager;
+        _backupRepository = backupRepository;
     }
 
-    public void Backup(CancellationToken cancellationToken)
+    public async Task BackupAsync(CancellationToken cancellationToken)
     {
         var source = _factory.GetSource();
         var target = _factory.GetTarget();
@@ -77,9 +80,9 @@ public class BackupManager
             try
             {
                 target.Apply(result, cancellationToken);
-                
-                WriteBackupInfoToDatabase(result, target, cancellationToken)
-                    .ConfigureAwait(false).GetAwaiter().GetResult();
+
+                await WriteBackups(target, result, cancellationToken);
+                await _retentionManager.PerformCleanupAsync(cancellationToken);
             }
             finally
             {
@@ -90,5 +93,13 @@ public class BackupManager
         {
             source.Cleanup();
         }
+    }
+    
+    public void Backup(CancellationToken cancellationToken)
+    {
+        BackupAsync(cancellationToken)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
     }
 }
