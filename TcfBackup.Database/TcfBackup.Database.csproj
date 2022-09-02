@@ -4,15 +4,17 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="linq2db" Version="4.1.1" />
-      <PackageReference Include="System.Data.SQLite.Core" Version="1.0.116" />
+        <PackageReference Include="linq2db" Version="4.1.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj" />
+        <ProjectReference Include="..\SQLite\System.Data.SQLite\System.Data.SQLite.NetStandard21.csproj" />
+        <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj" />
     </ItemGroup>
 
 </Project>

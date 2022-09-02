@@ -6,6 +6,10 @@
         <IsPackable>false</IsPackable>
 
         <Nullable>enable</Nullable>
+
+        <Configurations>Debug;Release</Configurations>
+
+        <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>

@@ -4,19 +4,13 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TcfBackup.Native\TcfBackup.Native.csproj"/>
-        <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj"/>
+        <ProjectReference Include="..\TcfBackup.Native\TcfBackup.Native.csproj" />
+        <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj" />
     </ItemGroup>
 
 </Project>

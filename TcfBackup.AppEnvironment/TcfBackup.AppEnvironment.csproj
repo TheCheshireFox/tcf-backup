@@ -5,10 +5,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>TcfBackup</RootNamespace>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj"/>
+        <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
     </ItemGroup>
 
 </Project>

@@ -10,13 +10,15 @@ function dotnet_publish()
 function dotnet_publish_portable() {
 	DIR="${1}"
 	RUNTIME="${2}"
-	dotnet_publish -r $RUNTIME -o "$DIR/portable/Release" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true --self-contained true -nowarn:IL2104,IL2087,IL2091,IL2026,IL2090
+	PLATFORM="${3}"
+	dotnet_publish -r "$RUNTIME" -p:Platform="$PLATFORM" -p:PlatformTarget="$PLATFORM" -o "$DIR/portable/Release" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true --self-contained true -nowarn:IL2104,IL2087,IL2091,IL2026,IL2090
 }
 
 function dotnet_publish_standart() {
 	DIR="${1}"
 	RUNTIME="${2}"
-	dotnet_publish -r $RUNTIME -o "$DIR/standart/Release" --no-self-contained
+	PLATFORM="${3}"
+	dotnet_publish -r "$RUNTIME" -p:Platform="$PLATFORM" -p:PlatformTarget="$PLATFORM" -o "$DIR/standart/Release" --no-self-contained
 }
 
 function make_portable() {
@@ -53,16 +55,17 @@ function make_standart() {
 
 function make_for_runtime() {
 	RUNTIME="${1}"
+	PLATFORM="${2}"
 
 	mkdir -p "publish/$RUNTIME"
-	dotnet_publish_portable "publish/$RUNTIME" $RUNTIME
+	dotnet_publish_portable "publish/$RUNTIME" "$RUNTIME" "$PLATFORM"
 	make_portable "publish/$RUNTIME"
 
-	dotnet_publish_standart "publish/$RUNTIME" $RUNTIME
+	dotnet_publish_standart "publish/$RUNTIME" "$RUNTIME" "$PLATFORM"
 	make_standart "publish/$RUNTIME"
 }
 
 rm -rf publish
 
-make_for_runtime linux-x64
-make_for_runtime linux-arm64
+make_for_runtime linux-x64 x64
+make_for_runtime linux-arm64 arm64
