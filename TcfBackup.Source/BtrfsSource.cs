@@ -13,6 +13,14 @@ public class BtrfsSource : ISource, ISymlinkFilterable
     private readonly string _subvolume;
     private readonly string? _snapshot;
 
+    private static string GetSubvolumeName(string subvolume)
+    {
+        var directoryInfo = new DirectoryInfo(subvolume);
+        return directoryInfo.Parent == null
+            ? "root"
+            : directoryInfo.Name;
+    }
+    
     public BtrfsSource(ILogger logger, IBtrfsManager btrfsManager, IFilesystem filesystem, string subvolume, string? snapshotDir)
     {
         _logger = logger.ForContextShort<BtrfsSource>();
@@ -24,7 +32,7 @@ public class BtrfsSource : ISource, ISymlinkFilterable
         if (snapshotDir == null) return;
 
         _snapshot = filesystem.DirectoryExists(snapshotDir)
-            ? Path.Combine(snapshotDir, new DirectoryInfo(subvolume).Name)
+            ? Path.Combine(snapshotDir, GetSubvolumeName(subvolume))
             : filesystem.DirectoryExists(Path.GetDirectoryName(snapshotDir))
                 ? snapshotDir
                 : throw new DirectoryNotFoundException(snapshotDir);
@@ -40,7 +48,7 @@ public class BtrfsSource : ISource, ISymlinkFilterable
             return;
         }
 
-        _logger.Information("Creating snapshot of {subvolume} to {snapshot}", _subvolume, _snapshot);
+        _logger.Information("Creating snapshot of {Subvolume} to {Snapshot}", _subvolume, _snapshot);
 
         _btrfsManager.CreateSnapshot(_subvolume, _snapshot);
 
@@ -54,7 +62,7 @@ public class BtrfsSource : ISource, ISymlinkFilterable
             return;
         }
 
-        _logger.Information("Deleting snapshot {snapshot}...", _snapshot);
+        _logger.Information("Deleting snapshot {Snapshot}...", _snapshot);
 
         _btrfsManager.DeleteSubvolume(_snapshot);
 
