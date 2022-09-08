@@ -19,7 +19,7 @@ namespace TcfBackup.Test.Retention;
 public class RetentionManagerTests
 {
     private static readonly IEqualityComparer<Backup> s_backupComparer = new FuncEqualityComparer<Backup>(
-        (l, r) => l.BackupId == r.BackupId);
+        (l, r) => l.Id == r.Id);
 
     private static Backup MakeBackup(int id, DateTime date, string path, string name = "test") =>
         new ()
