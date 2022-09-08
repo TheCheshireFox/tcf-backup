@@ -165,6 +165,8 @@ public class GDriveAdapter : IGDriveAdapter
 
     public string? CreateDirectory(string path)
     {
+        path = Path.TrimEndingDirectorySeparator(path);
+        
         var parts = GetPathParts(path);
         var files = GetFiles();
 
