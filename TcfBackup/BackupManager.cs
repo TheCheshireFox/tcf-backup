@@ -9,7 +9,6 @@ using TcfBackup.Configuration.Global;
 using TcfBackup.Database.Repository;
 using TcfBackup.Factory;
 using TcfBackup.Retention;
-using TcfBackup.Shared;
 using TcfBackup.Source;
 using TcfBackup.Target;
 
@@ -41,7 +40,7 @@ public class BackupManager
 
         var files = result.GetFiles().Select(f => new BackupFile
         {
-            Path = Path.Combine(targetDirectory, PathUtils.AppendRoot(f.Path))
+            Path = Path.Join(targetDirectory, Path.GetFileName(f.Path))
         });
 
         var backup = new Backup
