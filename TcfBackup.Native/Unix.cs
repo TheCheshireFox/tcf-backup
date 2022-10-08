@@ -10,7 +10,10 @@ public static class Unix
     {
         File,
         Directory,
-        Symlink
+        Symlink,
+        Block,
+        Char,
+        Fifo
     }
 
     public struct FileOwner
@@ -30,25 +33,29 @@ public static class Unix
         public FileType FileType;
         public DateTime ModTime;
         public string? LinkTo;
+        public long Size;
     }
 
     public static FileInfo GetFileInfo(string path)
     {
-        var unixFileInfo = new UnixFileInfo(path);
-
+        var unixFileInfo = new UnixSymbolicLinkInfo(path);
+        
         var (devMajor, devMinor) = SplitDeviceNumber(unixFileInfo.Device);
 
         return new FileInfo
         {
             DevMajor = devMajor,
-            DevMinor = devMajor,
+            DevMinor = devMinor,
             Mode = (long)unixFileInfo.FileAccessPermissions,
             ModTime = unixFileInfo.LastWriteTime,
-            LinkTo = unixFileInfo.IsSymbolicLink ? new UnixSymbolicLinkInfo(path).ContentsPath : null,
+            LinkTo = unixFileInfo.IsSymbolicLink ? unixFileInfo.ContentsPath : null,
             FileType = unixFileInfo.FileType switch
             {
                 FileTypes.Directory => FileType.Directory,
                 FileTypes.SymbolicLink => FileType.Symlink,
+                FileTypes.BlockDevice => FileType.Block,
+                FileTypes.CharacterDevice => FileType.Char,
+                FileTypes.Fifo => FileType.File,
                 _ => FileType.File
             },
             Owner = new FileOwner
@@ -57,7 +64,8 @@ public static class Unix
                 GroupId = unixFileInfo.OwnerGroupId,
                 UserName = unixFileInfo.OwnerUser.UserName,
                 GroupName = unixFileInfo.OwnerGroup.GroupName
-            }
+            },
+            Size = unixFileInfo.Length
         };
     }
 
