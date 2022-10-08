@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\SQLite\System.Data.SQLite\System.Data.SQLite.NetStandard21.csproj" />
+        <ProjectReference Include="..\SQLite\System.Data.SQLite\System.Data.SQLite.csproj" />
         <ProjectReference Include="..\TcfBackup.AppEnvironment\TcfBackup.AppEnvironment.csproj" />
     </ItemGroup>
 

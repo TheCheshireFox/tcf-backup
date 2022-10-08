@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\TcfBackup.Archiver\TcfBackup.Archiver.csproj" />
         <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
         <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj" />
     </ItemGroup>
