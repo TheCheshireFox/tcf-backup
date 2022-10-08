@@ -4,14 +4,14 @@ cd "$(dirname "$0")" || exit
 
 function dotnet_publish()
 {
-	dotnet publish -c Release  -nologo -clp:NoSummary -verbosity:quiet "${@}" TcfBackup/TcfBackup.csproj
+	dotnet publish -c Release -nologo -clp:NoSummary -verbosity:quiet "${@}" TcfBackup/TcfBackup.csproj
 }
 
 function dotnet_publish_portable() {
 	DIR="${1}"
 	RUNTIME="${2}"
 	PLATFORM="${3}"
-	dotnet_publish -r "$RUNTIME" -p:Platform="$PLATFORM" -p:PlatformTarget="$PLATFORM" -o "$DIR/portable/Release" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true --self-contained true -nowarn:IL2104,IL2087,IL2091,IL2026,IL2090
+	dotnet_publish -r "$RUNTIME" -p:Platform="$PLATFORM" -p:PlatformTarget="$PLATFORM" -o "$DIR/portable/Release" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true --self-contained true
 }
 
 function dotnet_publish_standart() {
