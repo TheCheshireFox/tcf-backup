@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -14,25 +15,61 @@ public static class ConfigurationFactory
     private static readonly IReadOnlyDictionary<string, Func<string, IConfiguration>> s_parsers =
         new Dictionary<string, Func<string, IConfiguration>>
         {
+            { "", LoadYaml }, // default parser
             { ".yaml", LoadYaml },
             { ".json", LoadJson }
         };
 
-    private static readonly Func<string, IConfiguration> s_defaultParser = s_parsers[".yaml"];
+    private static readonly string[] s_configurationSearchPaths = { "./", AppEnvironment.TcfConfigDirectory };
 
+    private static bool TryFindConfigurationFileWithSupportedExtensions(string path, out string result)
+    {
+        if (!string.IsNullOrEmpty(PathUtils.GetFullExtension(path)))
+        {
+            if (File.Exists(path))
+            {
+                result = path;
+                return true;
+            }
+
+            result = string.Empty;
+            return false;
+        }
+
+        foreach (var ext in s_parsers.Keys.Where(k => !string.IsNullOrEmpty(k)))
+        {
+            if (File.Exists(result = path + ext))
+            {
+                return true;
+            }
+        }
+        
+        result = string.Empty;
+        return false;
+    }
+    
     private static string FindConfigurationFile(string configurationFile)
     {
-        if (!File.Exists(configurationFile))
+        FileNotFoundException CreateException() => new($"Configuration file {configurationFile} not found.");
+
+        if (Path.IsPathRooted(configurationFile))
         {
-            configurationFile = Path.Combine(AppEnvironment.TcfConfigDirectory, configurationFile);
+            return TryFindConfigurationFileWithSupportedExtensions(configurationFile, out configurationFile)
+                ? configurationFile
+                : throw CreateException();
         }
 
-        if (!File.Exists(configurationFile))
+        foreach (var searchPath in s_configurationSearchPaths)
         {
-            throw new FileNotFoundException($"Configuration file {configurationFile} not found.");
+            var path = Path.GetFullPath(Path.Join(searchPath, configurationFile));
+
+            if (TryFindConfigurationFileWithSupportedExtensions(path, out path))
+            {
+                return path;
+            }
         }
 
-        return configurationFile;
+        throw CreateException();
     }
 
     private static IConfiguration ReadConfiguration(string? configurationFile)
@@ -45,13 +82,8 @@ public static class ConfigurationFactory
         configurationFile = FindConfigurationFile(configurationFile);
         var ext = PathUtils.GetFullExtension(configurationFile);
 
-        if (s_parsers.TryGetValue(ext, out var parser))
-        {
-            return parser(configurationFile);
-        }
-
-        return string.IsNullOrEmpty(ext)
-            ? s_defaultParser(configurationFile)
+        return s_parsers.TryGetValue(ext, out var parser)
+            ? parser(configurationFile)
             : throw new NotSupportedException(ext);
     }
 
