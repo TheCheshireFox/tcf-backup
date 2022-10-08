@@ -2502,7 +2502,7 @@ namespace System.Data.SQLite
       int enc = 0;
       IntPtr p = UnsafeNativeMethods.sqlite3_context_collseq_interop(context, ref type, ref enc, ref len);
 
-      if (p != null) seq.Name = UTF8ToString(p, len);
+      if (p != IntPtr.Zero) seq.Name = UTF8ToString(p, len);
       seq.Type = (CollationTypeEnum)type;
       seq._func = func;
       seq.Encoding = (CollationEncodingEnum)enc;

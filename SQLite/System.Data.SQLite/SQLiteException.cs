@@ -131,9 +131,6 @@ namespace System.Data.SQLite
     /// <param name="context">
     /// Contains contextual information about the source or destination.
     /// </param>
-    [SecurityPermission(
-      SecurityAction.LinkDemand,
-      Flags = SecurityPermissionFlag.SerializationFormatter)]
     public override void GetObjectData(
       SerializationInfo info,
       StreamingContext context)
