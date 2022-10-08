@@ -5,6 +5,8 @@
  * Released to the public domain, use at your own risk!
  ********************************************************/
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace System.Data.SQLite
 {
   using System;
@@ -365,13 +367,13 @@ namespace System.Data.SQLite
       /// <summary>
       /// This type is only present when running on Mono.
       /// </summary>
-      private static readonly string MonoRuntimeType = "Mono.Runtime";
+      private const string MonoRuntimeType = "Mono.Runtime";
 
       /////////////////////////////////////////////////////////////////////////
       /// <summary>
       /// This type is only present when running on .NET Core.
       /// </summary>
-      private static readonly string DotNetCoreLibType = "System.CoreLib";
+      private const string DotNetCoreLibType = "System.CoreLib";
 
       /////////////////////////////////////////////////////////////////////////
       /// <summary>
@@ -426,6 +428,7 @@ namespace System.Data.SQLite
       /// <returns>
       /// Non-zero if this assembly is running on Mono.
       /// </returns>
+      [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Can't be trimmed")]
       private static bool IsMono()
       {
           try
@@ -454,6 +457,7 @@ namespace System.Data.SQLite
       /// <returns>
       /// Non-zero if this assembly is running on .NET Core.
       /// </returns>
+      [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Can't be trimmed")]
       public static bool IsDotNetCore()
       {
           try
@@ -2559,6 +2563,7 @@ namespace System.Data.SQLite
 
       /////////////////////////////////////////////////////////////////////////
 
+      [UnconditionalSuppressMessage("SingleFile", "IL3000", Justification = "Handled")]
       private static bool CheckAssemblyCodeBase(
           Assembly assembly,
           ref string fileName
@@ -2569,7 +2574,7 @@ namespace System.Data.SQLite
               if (assembly == null)
                   return false;
 
-              string codeBase = assembly.CodeBase;
+              string codeBase = assembly.Location;
 
               if (String.IsNullOrEmpty(codeBase))
                   return false;
@@ -2745,6 +2750,7 @@ namespace System.Data.SQLite
       /// The directory for the assembly currently being executed -OR- null if
       /// it cannot be determined.
       /// </returns>
+      [UnconditionalSuppressMessage("SingleFile", "IL3000", Justification = "Handled")]
       private static string GetAssemblyDirectory()
       {
           #region Debug Build Only
