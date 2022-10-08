@@ -5,6 +5,8 @@
  * Released to the public domain, use at your own risk!
  ********************************************************/
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace System.Data.SQLite
 {
   using System;
@@ -644,9 +646,7 @@ namespace System.Data.SQLite
     /// Using reflection, enumerate all assemblies in the current appdomain looking for classes that
     /// have a SQLiteFunctionAttribute attribute, and registering them accordingly.
     /// </summary>
-#if !PLATFORM_COMPACTFRAMEWORK && !NET_STANDARD_20 && !NET_STANDARD_21
-    [Security.Permissions.FileIOPermission(Security.Permissions.SecurityAction.Assert, AllFiles = Security.Permissions.FileIOPermissionAccess.PathDiscovery)]
-#endif
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "If assemblies was trimmed then we don't need them")]
     static SQLiteFunction()
     {
       _registeredFunctions = new Dictionary<SQLiteFunctionAttribute, object>();

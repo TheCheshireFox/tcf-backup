@@ -1,4 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
+
+[module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled by Microsoft.Extensions.Configuration")]
 
 namespace TcfBackup.Extensions.Configuration;
 

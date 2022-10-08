@@ -5,6 +5,12 @@
  * Released to the public domain, use at your own risk!
  ********************************************************/
 
+using System.Diagnostics.CodeAnalysis;
+
+[module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")]
+[module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2072")]
+[module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2093")]
+
 namespace System.Data.SQLite
 {
   using System;
@@ -20,6 +26,7 @@ namespace System.Data.SQLite
   /// </summary>
   [DefaultProperty("DataSource")]
   [DefaultMember("Item")]
+  [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
   public sealed class SQLiteConnectionStringBuilder : DbConnectionStringBuilder
   {
     /// <summary>
@@ -97,7 +104,7 @@ namespace System.Data.SQLite
     [DefaultValue(SynchronizationModes.Normal)]
     public SynchronizationModes SyncMode
     {
-      get
+        get
       {
         object value;
         TryGetValue("synchronous", out value);
@@ -681,7 +688,7 @@ namespace System.Data.SQLite
     [DisplayName("Journal Mode")]
     public SQLiteJournalModeEnum JournalMode
     {
-      get
+        get
       {
         object value;
         TryGetValue("journal mode", out value);
@@ -704,7 +711,7 @@ namespace System.Data.SQLite
     [DisplayName("Default Isolation Level")]
     public IsolationLevel DefaultIsolationLevel
     {
-      get
+        get
       {
         object value;
         TryGetValue("default isolationlevel", out value);

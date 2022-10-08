@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -14,6 +15,8 @@ using TcfBackup.Restore;
 using TcfBackup.Source;
 using TcfBackup.Target;
 using CompressAlgorithm = TcfBackup.Managers.CompressAlgorithm;
+
+[module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled by Microsoft.Extensions.Configuration")]
 
 namespace TcfBackup.Factory;
 

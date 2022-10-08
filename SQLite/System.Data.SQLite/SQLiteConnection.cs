@@ -5,6 +5,8 @@
  * Released to the public domain, use at your own risk!
  ********************************************************/
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace System.Data.SQLite
 {
   using System;
@@ -6232,6 +6234,7 @@ namespace System.Data.SQLite
     /// Builds a MetaDataCollections schema datatable
     /// </summary>
     /// <returns>DataTable</returns>
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "No serialized types")]
     private static DataTable Schema_MetaDataCollections()
     {
       DataTable tbl = new DataTable("MetaDataCollections");
@@ -6806,6 +6809,7 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "No serialized types")]
     private DataTable Schema_DataTypes()
     {
       DataTable tbl = new DataTable("DataTypes");

@@ -56,6 +56,7 @@ public static class Program
 #endif
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled inside configuration.Get")]
     private static GlobalOptions BindGlobalOptions(IConfiguration configuration, string name)
     {
         var opts = configuration.Get<GlobalOptions>();
