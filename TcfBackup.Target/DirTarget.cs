@@ -5,15 +5,14 @@ namespace TcfBackup.Target;
 
 public class DirTarget : ITarget
 {
-    private readonly string _dir;
     private readonly bool _overwrite;
 
     public string Scheme => TargetSchemes.Filesystem;
-    public string Directory => _dir;
-    
+    public string Directory { get; }
+
     public DirTarget(IFilesystem filesystem, string dir, bool overwrite)
     {
-        filesystem.CreateDirectory(_dir = dir);
+        filesystem.CreateDirectory(Directory = dir);
         _overwrite = overwrite;
     }
 
@@ -22,7 +21,7 @@ public class DirTarget : ITarget
         foreach (var file in source.GetFiles())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            file.Move(Path.Combine(_dir, Path.GetFileName(file.Path)), _overwrite);
+            file.Move(Path.Combine(Directory, Path.GetFileName(file.Path)), _overwrite);
         }
     }
 }

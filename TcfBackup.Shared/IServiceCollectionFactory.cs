@@ -1,6 +1,6 @@
 namespace TcfBackup.Shared;
 
-public interface IServiceCollectionFactory<T>
+public interface IServiceCollectionFactory<out T>
 {
     T Create();
 }

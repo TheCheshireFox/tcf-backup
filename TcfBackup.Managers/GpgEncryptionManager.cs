@@ -28,7 +28,7 @@ public class GpgEncryptionManager : IEncryptionManager
             throw new FileNotFoundException($"File or key {keyfile} not found");
         }
 
-        using var keyStream = fs.OpenRead(keyfile);
+        using var keyStream = fs.Open(keyfile, FileMode.Open, FileAccess.Read);
         using var keyFileData = new GpgmeStreamData(keyStream);
 
         var importResult = context.KeyStore.Import(keyFileData);
@@ -104,13 +104,14 @@ public class GpgEncryptionManager : IEncryptionManager
     {
         using var gpgContext = PrepareContext();
 
-        using var srcRawStream = _fs.OpenRead(src);
+        using var srcRawStream = _fs.Open(src, FileMode.Open, FileAccess.Read);
         using var srcStream = new GpgmeStreamData(srcRawStream);
-        using var dstRawStream = _fs.OpenWrite(dst);
+        using var dstRawStream = _fs.Open(dst, FileMode.Create, FileAccess.Write);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
         gpgContext.Context.Armor = true;
 
+        // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
 
         _logger.Information("Encryption of file {Source} to {Target}...", src, dst);
@@ -129,11 +130,12 @@ public class GpgEncryptionManager : IEncryptionManager
     {
         using var gpgContext = PrepareContext();
 
-        using var srcRawStream = _fs.OpenRead(src);
+        using var srcRawStream = _fs.Open(src, FileMode.Open, FileAccess.Read);
         using var srcStream = new GpgmeStreamData(srcRawStream);
-        using var dstRawStream = _fs.OpenWrite(dst);
+        using var dstRawStream = _fs.Open(dst, FileMode.Create, FileAccess.Write);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
+        // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
         
         _logger.Information("Decryption of file {Source} to {Target}...", src, dst);

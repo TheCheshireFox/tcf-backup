@@ -210,34 +210,21 @@ public class GDriveAdapter : IGDriveAdapter
         long threshold;
         try
         {
-            switch (stream.Length)
+            threshold = stream.Length switch
             {
-                case < 1 * 1024 * kilobyte:
-                    threshold = 100 * kilobyte;
-                    break;
-                case < 100 * 1024 * kilobyte:
-                    threshold = 1 * 1024 * kilobyte;
-                    break;
-                default:
-                    threshold = 10 * 1024 * kilobyte;
-                    break;
-            }
+                < 1 * 1024 * kilobyte => 100 * kilobyte,
+                < 100 * 1024 * kilobyte => 1 * 1024 * kilobyte,
+                _ => 10 * 1024 * kilobyte
+            };
         }
         catch (Exception)
         {
             threshold = 100 * kilobyte;
         }
 
-        long lastTotal = 0;
-        cmu.ProgressChanged += uploadProgress =>
-        {
-            if (uploadProgress.BytesSent / threshold > lastTotal / threshold)
-            {
-                _logger.Information("Transferred: {Total}", StringExtensions.FormatBytes(uploadProgress.BytesSent));
-            }
-
-            lastTotal = uploadProgress.BytesSent;
-        };
+        var progressLogger = new ProgressLogger(threshold);
+        progressLogger.OnProgress += bytesSent => _logger.Information("Transferred: {Total}", StringExtensions.FormatBytes(bytesSent));
+        cmu.ProgressChanged += uploadProgress => progressLogger.Update(uploadProgress.BytesSent);
 
         var uploadProgress = cmu.UploadAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 

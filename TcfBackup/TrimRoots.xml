@@ -1,0 +1,9 @@
+<linker>
+    <assembly fullname="CommandLine"/>
+    <assembly fullname="Google.Apis.Core"/>
+    <assembly fullname="Google.Apis"/>
+    <assembly fullname="gpgme-sharp"/>
+    <assembly fullname="Newtonsoft.Json"/>
+    <assembly fullname="Serilog"/>
+    <assembly fullname="YamlDotNet"/>
+</linker>

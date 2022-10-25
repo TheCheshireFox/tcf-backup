@@ -31,7 +31,7 @@ public class GDriveTarget : ITarget
         {
             _logger.Information("Uploading {Path}...", file.Path);
 
-            using var stream = _fs.OpenRead(file.Path);
+            using var stream = _fs.Open(file.Path, FileMode.Open, FileAccess.Read);
             _gDriveAdapter.UploadFile(stream, Path.GetFileName(file.Path), _directoryId, cancellationToken);
 
             _logger.Information("Complete");

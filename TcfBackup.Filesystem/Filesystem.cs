@@ -209,12 +209,11 @@ public class Filesystem : IFilesystem, IDisposable
 
     public void WriteAllLines(string path, IEnumerable<string> lines) => File.WriteAllLines(path, lines);
 
-    public Stream OpenRead(string path) => File.OpenRead(path);
-
-    public Stream OpenWrite(string path) => File.OpenWrite(path);
+    public FileStream Open(string path, FileMode mode, FileAccess access) => File.Open(path, mode, access);
 
     public void Dispose()
     {
         _tempDirectoryCleanup();
+        GC.SuppressFinalize(this);
     }
 }
