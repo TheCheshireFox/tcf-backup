@@ -18,10 +18,9 @@ public interface IFilesystem
     void CopyFile(string source, string destination, bool overwrite);
     void CopyDirectory(string source, string destination, bool recursive);
 
+    FileStream Open(string path, FileMode mode, FileAccess access);
+    
     string[] ReadAllLines(string path);
     string ReadAllText(string path);
     void WriteAllLines(string path, IEnumerable<string> lines);
-
-    Stream OpenRead(string path);
-    Stream OpenWrite(string path);
 }

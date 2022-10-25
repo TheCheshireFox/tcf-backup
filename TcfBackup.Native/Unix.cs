@@ -26,6 +26,7 @@ public static class Unix
 
     public struct FileInfo
     {
+        public string Path;
         public FileOwner Owner;
         public long Mode;
         public long DevMajor;
@@ -44,6 +45,7 @@ public static class Unix
 
         return new FileInfo
         {
+            Path = path,
             DevMajor = devMajor,
             DevMinor = devMinor,
             Mode = (long)unixFileInfo.FileAccessPermissions,

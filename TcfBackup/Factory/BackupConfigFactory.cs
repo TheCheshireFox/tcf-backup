@@ -72,7 +72,7 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
 
     private ICompressionManager CreateCompressionManager()
     {
-        return new TarCompressionManager(_logger, _fs);
+        return new CompressionManager(_logger, _fs);
     }
 
     private IEncryptionManager CreateEncryptionManager(EncryptionActionOptions opts)
@@ -84,26 +84,22 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
         };
     }
 
-    private ILxdManager CreateLxdManager()
+    private ILxdManager CreateLxdManager(LxdSourceOptions opts)
     {
-        return new LxdManager();
+        return new LxdManager(_logger, opts.Address);
     }
 
     private IAction CreateCompressAction(CompressActionOptions opts)
     {
-        var algo = opts.Algorithm switch
+        var compressAlgorithms = opts.Algorithms.Select(algo => algo switch
         {
             Configuration.Action.CompressAlgorithm.Gzip => CompressAlgorithm.Gzip,
-            Configuration.Action.CompressAlgorithm.Lzma => CompressAlgorithm.Lzma,
-            Configuration.Action.CompressAlgorithm.Lzop => CompressAlgorithm.Lzop,
             Configuration.Action.CompressAlgorithm.Xz => CompressAlgorithm.Xz,
             Configuration.Action.CompressAlgorithm.BZip2 => CompressAlgorithm.BZip2,
-            Configuration.Action.CompressAlgorithm.LZip => CompressAlgorithm.LZip,
-            Configuration.Action.CompressAlgorithm.ZStd => CompressAlgorithm.ZStd,
-            _ => throw new NotSupportedException($"Compression algorithm {opts.Algorithm} not supported")
-        };
+            _ => throw new NotSupportedException($"Compression algorithm {opts.Algorithms} not supported")
+        }).ToArray();
 
-        return new CompressAction(_logger, CreateCompressionManager(), _fs, algo, opts.Name, opts.ChangeDir,
+        return new CompressAction(_logger, CreateCompressionManager(), _fs, compressAlgorithms, opts.Name, opts.ChangeDir,
             opts.FollowSymlinks);
     }
 
@@ -187,7 +183,7 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
             BtrfsSourceOptions btrfsOpts => new BtrfsSource(_logger, CreateBtrfsManager(), _fs, btrfsOpts.Subvolume,
                 btrfsOpts.SnapshotDir),
             DirectorySourceOptions dirOpts => new DirSource(_logger, _fs, dirOpts.Path),
-            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(), _fs, lxdOpts.Containers,
+            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(lxdOpts), _fs, lxdOpts.Containers,
                 lxdOpts.IgnoreMissing),
             var notSupportedSource => throw new NotSupportedException($"Source {notSupportedSource.Type} not supported")
         };

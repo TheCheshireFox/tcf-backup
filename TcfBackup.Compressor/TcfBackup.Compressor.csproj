@@ -4,14 +4,39 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
+    <Import Project="$(SolutionDir)\cmake.targets" />
+    
     <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.2" />
       <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
     </ItemGroup>
-
+    
+    <PropertyGroup>
+        <CMakeLists>$(SolutionDir)/Compressor/CMakeLists.txt</CMakeLists>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Content Include="bin/$(PlatformTarget)/$(Configuration)/net6.0/libcompressor.so" Link="%(Filename)%(Extension)">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="bin/$(PlatformTarget)/$(Configuration)/net6.0/libcompressor.so.1.0.0" Link="%(Filename)%(Extension)">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

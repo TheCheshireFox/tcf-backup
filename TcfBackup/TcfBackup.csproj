@@ -45,6 +45,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\TcfBackup.Archiver\TcfBackup.Archiver.csproj" />
+        <ProjectReference Include="..\TcfBackup.Compressor\TcfBackup.Compressor.csproj" />
         <ProjectReference Include="..\TcfBackup.Database\TcfBackup.Database.csproj" />
         <ProjectReference Include="..\TcfBackup.Extensions.Configuration\TcfBackup.Extensions.Configuration.csproj" />
         <ProjectReference Include="..\TcfBackup.GDriveAdapter\TcfBackup.GDriveAdapter.csproj" />
@@ -53,6 +54,10 @@
         <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj" />
         <ProjectReference Include="..\TcfBackup.Source\TcfBackup.Source.csproj" />
         <ProjectReference Include="..\TcfBackup.Target\TcfBackup.Target.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <TrimmerRootDescriptor Include="TrimRoots.xml" />
     </ItemGroup>
 
 </Project>

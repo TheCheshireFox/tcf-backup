@@ -11,32 +11,28 @@ public class CompressAction : IAction
     private readonly ILogger _logger;
     private readonly IFilesystem _filesystem;
     private readonly ICompressionManager _compressionManager;
-    private readonly CompressAlgorithm _compressAlgorithm;
+    private readonly CompressAlgorithm[] _compressAlgorithms;
     private readonly string? _archiveName;
     private readonly string _changeDir;
     private readonly bool _followSymlinks;
 
     private string AlgorithmToExtension()
     {
-        return _compressAlgorithm switch
+        return string.Join('.', _compressAlgorithms.Select(algo => algo switch
         {
-            CompressAlgorithm.Gzip => ".tar.gz",
-            CompressAlgorithm.Lzma => ".tar.lzma",
-            CompressAlgorithm.Lzop => ".tar.lzop",
-            CompressAlgorithm.Xz => ".tar.xz",
-            CompressAlgorithm.BZip2 => ".tar.bz",
-            CompressAlgorithm.LZip => ".tar.lz",
-            CompressAlgorithm.ZStd => ".tar.zst",
-            _ => throw new NotSupportedException($"Compression algorithm {_compressAlgorithm} not supported")
-        };
+            CompressAlgorithm.Gzip => "gz",
+            CompressAlgorithm.Xz => "xz",
+            CompressAlgorithm.BZip2 => "bz",
+            _ => throw new NotSupportedException($"Compression algorithm {algo} not supported")
+        }).Prepend(".tar"));
     }
 
-    public CompressAction(ILogger logger, ICompressionManager compressionManager, IFilesystem filesystem, CompressAlgorithm algo, string? archiveName, string changeDir, bool followSymlinks)
+    public CompressAction(ILogger logger, ICompressionManager compressionManager, IFilesystem filesystem, CompressAlgorithm[] compressAlgorithms, string? archiveName, string changeDir, bool followSymlinks)
     {
         _logger = logger.ForContextShort<CompressAction>();
         _compressionManager = compressionManager;
         _filesystem = filesystem;
-        _compressAlgorithm = algo;
+        _compressAlgorithms = compressAlgorithms;
         _archiveName = archiveName;
         _changeDir = changeDir;
         _followSymlinks = followSymlinks;
@@ -54,8 +50,8 @@ public class CompressAction : IAction
 
         var files = source.GetFiles(_followSymlinks);
 
-        _logger.Information("Compressing files with algorithm {algo}", _compressAlgorithm);
-        _compressionManager.Compress(_compressAlgorithm, archiveFile, files.Select(f => f.Path).ToList(), _changeDir, _followSymlinks, cancellationToken);
+        _logger.Information("Compressing files with algorithm {algo}", _compressAlgorithms);
+        _compressionManager.Compress(_compressAlgorithms, archiveFile, files.Select(f => f.Path).ToList(), _changeDir, _followSymlinks, cancellationToken);
         _logger.Information("Complete");
 
         return FilesListSource.CreateMutable(_filesystem, new[] { archiveFile });

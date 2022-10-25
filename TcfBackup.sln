@@ -30,6 +30,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Data.SQLite", "SQLit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.Compressor", "TcfBackup.Compressor\TcfBackup.Compressor.csproj", "{A2EBDDF8-2566-480C-9924-6F2594743C1D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.Archiver", "TcfBackup.Archiver\TcfBackup.Archiver.csproj", "{8073B22A-E667-4180-8636-94E3433713E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.LxdClient", "TcfBackup.LxdClient\TcfBackup.LxdClient.csproj", "{C45879C8-E7DF-4295-9F7F-FD11FE74DCD6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -63,7 +67,11 @@ Global
 		{013CD1C6-AE92-4EF3-8ABB-F6CA2143B3FA}.Debug|x64.Build.0 = Debug|x64
 		{4CDF99B8-91FD-458E-8D45-DF40D534E809}.Debug|x64.ActiveCfg = Debug|x64
 		{4CDF99B8-91FD-458E-8D45-DF40D534E809}.Debug|x64.Build.0 = Debug|x64
-		{A2EBDDF8-2566-480C-9924-6F2594743C1D}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{A2EBDDF8-2566-480C-9924-6F2594743C1D}.Debug|x64.Build.0 = Debug|Any CPU
+		{A2EBDDF8-2566-480C-9924-6F2594743C1D}.Debug|x64.ActiveCfg = Debug|x64
+		{A2EBDDF8-2566-480C-9924-6F2594743C1D}.Debug|x64.Build.0 = Debug|x64
+		{8073B22A-E667-4180-8636-94E3433713E3}.Debug|x64.ActiveCfg = Debug|x64
+		{8073B22A-E667-4180-8636-94E3433713E3}.Debug|x64.Build.0 = Debug|x64
+		{C45879C8-E7DF-4295-9F7F-FD11FE74DCD6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C45879C8-E7DF-4295-9F7F-FD11FE74DCD6}.Debug|x64.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

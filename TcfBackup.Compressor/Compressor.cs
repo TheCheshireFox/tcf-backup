@@ -1,35 +1,56 @@
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
+
 namespace TcfBackup.Compressor;
 
-public class Compressor : IDisposable
+public delegate void OnCompressorLog(LogLevel level, string message);
+
+public class CompressorLogger
 {
-    private readonly bool _ownOutput;
+    private static readonly Dictionary<int, LogLevel> s_compressorToLogLevelMapping = new()
+    {
+        { 0, LogLevel.Debug },
+        { 1, LogLevel.Information },
+        { 2, LogLevel.Warning },
+        { 3, LogLevel.Error },
+    };
+    
+    private static readonly Dictionary<LogLevel, int> s_logLevelToCompressorMapping = new()
+    {
+        { LogLevel.Trace, 0 },
+        { LogLevel.Debug, 0 },
+        { LogLevel.Information, 1 },
+        { LogLevel.Warning, 2 },
+        { LogLevel.Error, 3 },
+        { LogLevel.Critical, 3 },
+    };
+
+    private static readonly CompressorNative.OnLog s_onLogInternalDelegate = OnLogInternal;
+    private static void OnLogInternal(int level, string message) => OnLog?.Invoke(s_compressorToLogLevelMapping[level], message);
+
+    public static event OnCompressorLog? OnLog;
+    
+    static CompressorLogger()
+    {
+        GCHandle.Alloc(s_onLogInternalDelegate);
+        CompressorNative.SetLogging(s_logLevelToCompressorMapping[LogLevel.Critical], s_onLogInternalDelegate);
+    }
+    
+    public static void SetLoggingLevel(LogLevel logLevel)
+    {
+        CompressorNative.SetLogging(s_logLevelToCompressorMapping[logLevel], s_onLogInternalDelegate);
+    }
+}
+
+public unsafe class Compressor : IDisposable
+{
     private IntPtr _pCompressor;
-
-    public Stream Input { get; }
-    public Stream Output { get; }
-
+    
     public Compressor(CompressorType compressorType)
-        : this(compressorType, FifoFactory.MkFifo(), true)
     {
-
-    }
-
-    public Compressor(CompressorType compressorType, FileStream output)
-        : this(compressorType, output, false)
-    {
-
-    }
-
-    private Compressor(CompressorType compressorType, FileStream output, bool ownOutput)
-    {
-        _ownOutput = ownOutput;
-        Output = output;
-        
         try
         {
-            Input = FifoFactory.MkFifo();
-
-            if (!CompressorNative.Create(compressorType, ((FileStream)Input).Name, output.Name, out _pCompressor))
+            if (!CompressorNative.Create(compressorType, out _pCompressor))
             {
                 var error = CompressorNative.GetLastError(_pCompressor);
                 CompressorNative.Destroy(_pCompressor);
@@ -39,28 +60,72 @@ public class Compressor : IDisposable
         }
         catch (Exception)
         {
-            Cleanup();
+            CompressorNative.Destroy(_pCompressor);
             throw;
         }
     }
 
-    private void Cleanup()
+    public void Compress(Span<byte> src, Stream dst, int bufferSize = 16 * 1024)
     {
-        if (_pCompressor != IntPtr.Zero)
+        bool CompressOnce(byte* pSrc, int srcLength, byte* pDst, int dstSize)
         {
-            CompressorNative.Destroy(_pCompressor);
+            switch (CompressorNative.Compress(_pCompressor, pSrc, srcLength, pDst, dstSize, out var compressedSize))
+            {
+                case CompressStatus.Complete:
+                    dst.Write(new Span<byte>(pDst, compressedSize));
+                    return true;
+                case CompressStatus.More:
+                    dst.Write(new Span<byte>(pDst, compressedSize));
+                    return false;
+                case CompressStatus.Error:
+                    throw new Exception(CompressorNative.GetLastError(_pCompressor));
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
-            
-        Input?.Dispose();
-        if (_ownOutput)
+        
+        var buffer = new byte[bufferSize];
+        fixed (byte* pSrc = src)
+        fixed (byte* pBuffer = buffer)
         {
-            Output.Dispose();
+            if (CompressOnce(pSrc, src.Length, pBuffer, buffer.Length))
+            {
+                return;
+            }
+
+            while (!CompressOnce(null, 0, pBuffer, buffer.Length))
+            {
+
+            }
+        }
+    }
+    
+    public void Cleanup(Stream dst, int bufferSize = 16 * 1024)
+    {
+        if (_pCompressor == IntPtr.Zero)
+        {
+            return;
+        }
+        
+        var buffer = new byte[bufferSize];
+        fixed (byte* pBuffer = buffer)
+        {
+            int compressedSize;
+            while (CompressorNative.Cleanup(_pCompressor, pBuffer, buffer.Length, out compressedSize) == CompressStatus.More)
+            {
+                dst.Write(new Span<byte>(pBuffer, buffer.Length));
+            }
+
+            if (compressedSize > 0)
+            {
+                dst.Write(new Span<byte>(pBuffer, buffer.Length));
+            }
         }
     }
     
     protected virtual void Dispose(bool disposing)
     {
-        Cleanup();
+        CompressorNative.Destroy(_pCompressor);
         _pCompressor = IntPtr.Zero;
     }
     

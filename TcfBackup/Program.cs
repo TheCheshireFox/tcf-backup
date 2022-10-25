@@ -6,10 +6,11 @@ using System.Threading;
 using CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Serilog;
 using Serilog.Events;
 using TcfBackup.CmdlineOptions;
+using TcfBackup.Compressor;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
 using TcfBackup.Database.Repository;
@@ -20,6 +21,7 @@ using TcfBackup.Managers;
 using TcfBackup.Retention;
 using TcfBackup.Retention.BackupCleaners;
 using TcfBackup.Shared;
+using ILogger = Serilog.ILogger;
 using RetentionOptions = TcfBackup.CmdlineOptions.RetentionOptions;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -54,6 +56,27 @@ public static class Program
             while (!Debugger.IsAttached) Thread.Sleep(1000);
         }
 #endif
+    }
+
+    private static void SetupCompressorLogger(IServiceProvider serviceProvider)
+    {
+        CompressorLogger.SetLoggingLevel(LogLevel.Debug);
+
+        var loggerOptions = serviceProvider.GetRequiredService<IOptions<LoggerOptions>>();
+        var logger = serviceProvider
+            .GetRequiredService<ILogger>()
+            .ForContextShort<CompressorLogger>();
+        
+        CompressorLogger.SetLoggingLevel(loggerOptions.Value.LogLevel.ToLogLevel());
+        CompressorLogger.OnLog += (lvl, msg) =>
+        {
+            if (lvl == LogLevel.None)
+            {
+                return;
+            }
+            
+            logger.Write(lvl.ToLogEventLevel(), msg);
+        };
     }
 
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled inside configuration.Get")]
@@ -97,7 +120,7 @@ public static class Program
             .AddSingletonFromFactory<FilesystemFactory, IFilesystem>()
             .AddSingleton<IBtrfsManager, BtrfsManager>()
             .AddSingleton<ILxdManager, LxdManager>()
-            .AddSingleton<ICompressionManager, TarCompressionManager>()
+            .AddSingleton<ICompressionManager, CompressionManager>()
             .AddSingleton<IGDriveAdapter, GDriveAdapter>()
             .AddSingleton<IConfiguration>(config)
             .AddSingleton<IFactory, BackupConfigFactory>()
@@ -113,6 +136,7 @@ public static class Program
         using var dp = di.BuildServiceProvider();
 
         AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
+        SetupCompressorLogger(dp);
 
         var manager = dp.CreateService<BackupManager>();
         var interruptionHandler = new InterruptionHandler();
@@ -126,6 +150,7 @@ public static class Program
         using var dp = di.BuildServiceProvider();
         
         AppEnvironment.Initialize(dp.GetService<IFilesystem>()!);
+        SetupCompressorLogger(dp);
 
         var retentionManager = dp.GetService<IRetentionManager>()!;
         var interruptionHandler = new InterruptionHandler();

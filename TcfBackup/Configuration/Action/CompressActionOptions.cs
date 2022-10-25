@@ -1,3 +1,5 @@
+using LinqToDB.Common;
+
 namespace TcfBackup.Configuration.Action;
 
 public enum CompressAlgorithm
@@ -14,7 +16,7 @@ public enum CompressAlgorithm
 
 public class CompressActionOptions : ActionOptions
 {
-    public CompressAlgorithm Algorithm { get; set; }
+    public CompressAlgorithm[] Algorithms { get; set; } = Array<CompressAlgorithm>.Empty;
     public bool FollowSymlinks { get; set; }
     public string ChangeDir { get; set; } = string.Empty;
     public string? Name { get; set; }
