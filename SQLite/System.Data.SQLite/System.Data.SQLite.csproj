@@ -98,6 +98,8 @@
     <Exec Command="&quot;$(MSBuildProjectDirectory)\..\Externals\ResGen\ResGen.exe&quot; Resources\SR.resx Generated\SR.resources &quot;$(MSBuildProjectDirectory)\Resources&quot;" />
   </Target>
 
+  <Import Project="$(SolutionDir)\cmake.targets" />
+  
   <!--
   ******************************************************************************
   **                     Import Project Default Settings                      **
@@ -221,18 +223,9 @@
       CleanConfigurations;
     </CleanDependsOn>
   </PropertyGroup>
-  <Target Condition=" '$(PlatformTarget)' == 'arm64' And '$(Configuration)' == 'Release' " Name="PreBuild_release_arm64" BeforeTargets="PreBuildEvent">
-    <Exec Command="../Setup/aarch-compile-interop-assembly-release.sh" />
-  </Target>
-  <Target Condition=" '$(PlatformTarget)' == 'arm64' And '$(Configuration)' == 'Debug' " Name="PreBuild_debug_arm64" BeforeTargets="PreBuildEvent">
-    <Exec Command="../Setup/aarch-compile-interop-assembly-debug.sh" />
-  </Target>
-  <Target Condition=" '$(PlatformTarget)' == 'x64' And '$(Configuration)' == 'Release' " Name="PreBuild_release_x64" BeforeTargets="PreBuildEvent">
-    <Exec Command="../Setup/x64-compile-interop-assembly-release.sh" />
-  </Target>
-  <Target Condition=" '$(PlatformTarget)' == 'x64' And '$(Configuration)' == 'Debug' " Name="PreBuild_debug_x4" BeforeTargets="PreBuildEvent">
-    <Exec Command="../Setup/x64-compile-interop-assembly-debug.sh" />
-  </Target>
+  <PropertyGroup>
+    <CMakeLists>$(SolutionDir)/SQLite/CMakeLists.txt</CMakeLists>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
