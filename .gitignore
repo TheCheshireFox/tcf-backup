@@ -10,4 +10,5 @@ TcfBackup.GDriveAdapter/credentials.json
 TcfBackup.GDriveAdapter/GDriveClientSecrets.cs
 Compressor/build/*
 Compressor/.vscode/*
+SQLite/build/*
 TcfBackup.sln.DotSettings.*
