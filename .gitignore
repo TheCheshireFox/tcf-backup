@@ -8,6 +8,6 @@ publish/
 publish-debug.sh
 TcfBackup.GDriveAdapter/credentials.json
 TcfBackup.GDriveAdapter/GDriveClientSecrets.cs
-Compression/build/
-Compression/.vscode
+Compressor/build/*
+Compressor/.vscode/*
 TcfBackup.sln.DotSettings.*
