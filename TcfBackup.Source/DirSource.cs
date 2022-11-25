@@ -1,21 +1,22 @@
 using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Shared;
+using IFile = TcfBackup.Filesystem.IFile;
 
 namespace TcfBackup.Source;
 
 public class DirSource : ISource, ISymlinkFilterable
 {
     private readonly ILogger _logger;
-    private readonly IFilesystem _filesystem;
+    private readonly IFileSystem _filesystem;
     private readonly string _dir;
 
-    public DirSource(ILogger logger, IFilesystem filesystem, string dir)
+    public DirSource(ILogger logger, IFileSystem filesystem, string dir)
     {
         _logger = logger.ForContextShort<DirSource>();
         _filesystem = filesystem;
 
-        if (!_filesystem.DirectoryExists(dir))
+        if (!_filesystem.Directory.Exists(dir))
         {
             throw new DirectoryNotFoundException(dir);
         }
@@ -24,11 +25,13 @@ public class DirSource : ISource, ISymlinkFilterable
     }
 
     public IEnumerable<IFile> GetFiles() => GetFiles(false);
-    public IEnumerable<IFile> GetFiles(bool followSymlinks) => _filesystem.GetFiles(_dir, followSymlinks: followSymlinks).Select(f => (IFile)new ImmutableFile(_filesystem, f)).ToArray();
+    public IEnumerable<IFile> GetFiles(bool followSymlinks) => _filesystem.Directory
+        .GetFiles(_dir, recursive: true, sameFilesystem: true, skipAccessDenied: true, followSymlinks)
+        .Select(f => (IFile)new ImmutableFile(_filesystem, f)).ToArray();
 
     public void Prepare()
     {
-        _logger.Information("Prepared for listing files in directory {dir}", _dir);
+        _logger.Information("Prepared for listing files in directory {Dir}", _dir);
     }
 
     public void Cleanup()

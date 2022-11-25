@@ -9,10 +9,10 @@ namespace TcfBackup.Action;
 public class EncryptAction : IAction
 {
     private readonly ILogger _logger;
-    private readonly IFilesystem _filesystem;
+    private readonly IFileSystem _filesystem;
     private readonly IEncryptionManager _encryptionManager;
 
-    public EncryptAction(ILogger logger, IFilesystem filesystem, IEncryptionManager encryptionManager)
+    public EncryptAction(ILogger logger, IFileSystem filesystem, IEncryptionManager encryptionManager)
     {
         _logger = logger.ForContextShort<EncryptAction>();
         _filesystem = filesystem;
@@ -23,7 +23,7 @@ public class EncryptAction : IAction
     {
         _logger.Information("Start encryption");
 
-        var targetDir = _filesystem.CreateTempDirectory();
+        var targetDir = _filesystem.Path.GetTempDirectoryName();
 
         try
         {
@@ -31,7 +31,7 @@ public class EncryptAction : IAction
             foreach (var file in source.GetFiles())
             {
                 var dst = Path.Combine(targetDir, Path.GetFileName(file.Path));
-                while (_filesystem.FileExists(dst))
+                while (_filesystem.File.Exists(dst))
                 {
                     dst = Path.Combine(targetDir, StringExtensions.GenerateRandomString(8) + PathUtils.GetFullExtension(file.Path));
                 }
@@ -41,7 +41,7 @@ public class EncryptAction : IAction
 
             foreach (var (src, dst) in encryptedFiles)
             {
-                _logger.Information("Encrypting file {src} to {dst}...", src, dst);
+                _logger.Information("Encrypting file {Src} to {Dst}...", src, dst);
                 _encryptionManager.Encrypt(src, dst, cancellationToken);
             }
 
@@ -51,7 +51,7 @@ public class EncryptAction : IAction
         }
         catch (Exception)
         {
-            _filesystem.Delete(targetDir);
+            _filesystem.Directory.Delete(targetDir, true);
             throw;
         }
     }

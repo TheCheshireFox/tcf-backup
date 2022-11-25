@@ -1,13 +1,12 @@
 using Microsoft.Extensions.Options;
 using Serilog;
-using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
 using TcfBackup.Filesystem;
 using TcfBackup.Shared;
 
 namespace TcfBackup.Factory;
 
-public class FilesystemFactory : IServiceCollectionFactory<IFilesystem>
+public class FilesystemFactory : IServiceCollectionFactory<IFileSystem>
 {
     private readonly string? _workingDir;
 
@@ -16,9 +15,9 @@ public class FilesystemFactory : IServiceCollectionFactory<IFilesystem>
         _workingDir = globalOptions.Value?.WorkingDir;
         if (!string.IsNullOrEmpty(_workingDir))
         {
-            logger.Information("Working directory: {workingDir}", _workingDir);
+            logger.Information("Working directory: {WorkingDir}", _workingDir);
         }
     }
 
-    public IFilesystem Create() => new Filesystem.Filesystem(_workingDir);
+    public IFileSystem Create() => new FileSystem(new System.IO.Abstractions.FileSystem(), _workingDir);
 }

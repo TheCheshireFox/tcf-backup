@@ -1,13 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Serilog;
+using TcfBackup.BackupDatabase;
 using TcfBackup.Configuration.Global;
-using TcfBackup.Database;
-using TcfBackup.Database.Repository;
 using TcfBackup.Retention.BackupCleaners;
 using TcfBackup.Shared;
 
@@ -47,9 +45,9 @@ public class RetentionManager : IRetentionManager
         }
         
         _logger.Information("Performing cleanup...");
-        
-        var backups = (await _backupRepository
-            .GetBackupsAsync())
+
+        var backups = _backupRepository
+            .GetBackups()
             .Where(b => b.Name == _globalOptions.Name)
             .ToDictionary(b => b.Id, b => b);
 
@@ -89,7 +87,7 @@ public class RetentionManager : IRetentionManager
                 }
             }
 
-            await _backupRepository.DeleteBackupAsync(backup, cancellationToken);
+            _backupRepository.DeleteBackup(backup);
         }
         
         _logger.Information("Cleanup complete");

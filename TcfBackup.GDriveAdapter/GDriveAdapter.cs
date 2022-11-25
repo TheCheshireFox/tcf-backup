@@ -24,7 +24,7 @@ public class GDriveAdapter : IGDriveAdapter
     {
         public Task<AuthorizationCodeResponseUrl> ReceiveCodeAsync(AuthorizationCodeRequestUrl url, CancellationToken taskCancellationToken)
         {
-            return Task.FromException<AuthorizationCodeResponseUrl>(new UnauthorizedAccessException("Access denied to google drive, use tcf-google-drive-auth to authenticate"));
+            return Task.FromException<AuthorizationCodeResponseUrl>(new UnauthorizedAccessException("Access denied to google drive, use google-auth to authenticate"));
         }
 
         public string RedirectUri => "";
@@ -39,7 +39,7 @@ public class GDriveAdapter : IGDriveAdapter
 
             while (true)
             {
-                Console.WriteLine("Please enter redirect url: ");
+                Console.WriteLine("Please enter redirect url:");
                 var redirectUrlStr = Console.ReadLine();
 
                 try
@@ -152,10 +152,10 @@ public class GDriveAdapter : IGDriveAdapter
         return file;
     }
     
-    public GDriveAdapter(ILogger logger, IFilesystem fs)
+    public GDriveAdapter(ILogger logger, IFileSystem fs)
     {
         _logger = logger.ForContextShort<GDriveAdapter>();
-        fs.CreateDirectory(TokensDirectory);
+        fs.Directory.CreateDirectory(TokensDirectory);
     }
 
     public void Authorize()

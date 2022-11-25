@@ -8,7 +8,7 @@ namespace TcfBackup.Action;
 
 public class FilterAction : IAction
 {
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
     private readonly bool _followSymlinks;
     private readonly Regex? _includeRegex;
     private readonly Regex? _excludeRegex;
@@ -21,9 +21,9 @@ public class FilterAction : IAction
             .Select(r => $"(?:{r})");
     }
 
-    public FilterAction(ILogger logger, IFilesystem fs, string[] includeRegex, string[] excludeRegex, bool followSymlinks)
+    public FilterAction(ILogger logger, IFileSystem fs, string[] includeRegex, string[] excludeRegex, bool followSymlinks)
     {
-        logger.ForContextShort<FilterAction>().Information("Filter initialized with regexes: {includeRe} {excludeRe}", includeRegex, excludeRegex);
+        logger.ForContextShort<FilterAction>().Information("Filter initialized with regexes: {IncludeRe} {ExcludeRe}", includeRegex, excludeRegex);
         _includeRegex = includeRegex.Length > 0 ? new Regex(string.Join('|', PreprocessRegex(includeRegex))) : null;
         _excludeRegex = excludeRegex.Length > 0 ? new Regex(string.Join('|', PreprocessRegex(excludeRegex))) : null;
         _fs = fs;

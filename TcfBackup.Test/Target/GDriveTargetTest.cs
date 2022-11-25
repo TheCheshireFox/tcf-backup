@@ -35,11 +35,11 @@ public class GDriveTargetTest
     [Test]
     public void UploadEachFileToDirectory()
     {
-        var fileStreams = new Dictionary<string, Stream>
+        var fileStreams = new Dictionary<string, FileStream>
         {
-            { "/dev/null/file1", new MemoryStream() },
-            { "/dev/null/file2", new MemoryStream() },
-            { "/dev/null/file3", new MemoryStream() },
+            { "/dev/null/file1", new FileStream("/dev/null", FileMode.Open, FileAccess.Read) },
+            { "/dev/null/file2", new FileStream("/dev/null", FileMode.Open, FileAccess.Read) },
+            { "/dev/null/file3", new FileStream("/dev/null", FileMode.Open, FileAccess.Read) },
         };
 
         var logger = new LoggerConfiguration().CreateLogger();
@@ -49,7 +49,7 @@ public class GDriveTargetTest
         fileStreams.ToList().ForEach(kv => gDriveMock.Setup(g => g.UploadFile(kv.Value, Path.GetFileName(kv.Key), DirectoryId, CancellationToken.None)));
 
         var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-        fileStreams.ToList().ForEach(kv => fsMock.Setup(fs => fs.OpenRead(kv.Key)).Returns(kv.Value));
+        fileStreams.ToList().ForEach(kv => fsMock.Setup(fs => fs.Open(kv.Key, FileMode.Open, FileAccess.Read)).Returns(kv.Value));
 
         var sourceMock = new Mock<ISource>(MockBehavior.Strict);
         sourceMock.Setup(s => s.GetFiles()).Returns(fileStreams.Keys.Select(f => (IFile)new ImmutableFile(fsMock.Object, f)).ToArray());

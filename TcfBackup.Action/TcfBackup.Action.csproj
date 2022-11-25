@@ -8,6 +8,14 @@
         <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
         <ProjectReference Include="..\TcfBackup.Managers\TcfBackup.Managers.csproj" />

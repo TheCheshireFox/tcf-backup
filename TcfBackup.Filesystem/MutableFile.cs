@@ -2,17 +2,17 @@ namespace TcfBackup.Filesystem;
 
 public class MutableFile : IFile
 {
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
 
     public string Path { get; }
 
-    public MutableFile(IFilesystem fs, string path)
+    public MutableFile(IFileSystem fs, string path)
     {
         Path = path;
         _fs = fs;
     }
 
-    public void Copy(string destination, bool overwrite = false) => _fs.CopyFile(Path, destination, overwrite);
-    public void Move(string destination, bool overwrite = false) => _fs.Move(Path, destination, overwrite);
-    public void Delete() => _fs.Delete(Path);
+    public void Copy(string destination, bool overwrite = false) => _fs.File.Copy(Path, destination, overwrite);
+    public void Move(string destination, bool overwrite = false) => _fs.File.Move(Path, destination, overwrite);
+    public void Delete() => _fs.File.Delete(Path);
 }

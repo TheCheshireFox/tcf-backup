@@ -1,4 +1,4 @@
-using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Serilog;
 using TcfBackup.Filesystem;
@@ -7,29 +7,87 @@ using TcfBackup.Source;
 
 namespace TcfBackup.Action;
 
+internal static unsafe class LibC
+{
+    private const int TmSize = 56;
+    
+    [DllImport("libc", EntryPoint = "localtime_r", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+    private static extern byte* localtime_r(ref long unixTime, byte* tm);
+    
+    [DllImport("libc", EntryPoint = "gmtime_r", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+    private static extern byte* gmtime_r(ref long unixTime, byte* tm);
+    
+    [DllImport("libc", EntryPoint = "strftime", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int strftime(byte* buffer, int size, byte* format, byte* tm);
+    
+    public static string FormatDate(DateTime date, string? format)
+    {
+        if (string.IsNullOrEmpty(format))
+        {
+            return string.Empty;
+        }
+        
+        var tm = stackalloc byte[TmSize];
+        var unixTime = new DateTimeOffset(date).ToUnixTimeSeconds();
+        tm = date.Kind == DateTimeKind.Utc
+            ? gmtime_r(ref unixTime, tm)
+            : localtime_r(ref unixTime, tm);
+
+        if (tm == null)
+        {
+            throw new FormatException();
+        }
+        
+        fixed (byte* pFormat = Encoding.UTF8.GetBytes(format))
+        {
+            var size = format.Length;
+            while (true)
+            {
+                var neededSize = strftime(null, unchecked(size *= 2), pFormat, tm);
+                if (neededSize == 0)
+                {
+                    if (size < 0)
+                    {
+                        throw new FormatException();
+                    }
+                    continue;
+                }
+                
+                size = neededSize;
+                break;
+            }
+
+            fixed (byte* pBuffer = new byte[++size])
+            {
+                if (strftime(pBuffer, size, pFormat, tm) == 0)
+                {
+                    throw new FormatException();
+                }
+
+                return Encoding.UTF8.GetString(pBuffer, size - 1);
+            }
+        }
+    }
+}
+
 public class RenameAction : IAction
 {
     private static readonly Dictionary<string, Func<string, string?, string>> s_templateReplacers = new()
     {
-        { "filename", FormatFilename },
-        { "filename_wext", FormatFilenameWithoutExt },
-        { "ext", FormatExtension },
-        { "date", FormatDate }
+        { "FN", FormatFilenameWithoutExt },
+        { "FE", FormatExtension },
+        { "D", FormatDate }
     };
 
     private readonly ILogger _logger;
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
     private readonly string _template;
     private readonly bool _overwrite;
+    
+    private static string FormatFilenameWithoutExt(string filename, string? format) => PathUtils.GetFileNameWithoutExtension(filename) ?? string.Empty;
+    private static string FormatExtension(string filename, string? format) => PathUtils.GetFullExtension(filename)[1..];
 
-    private static string ApplyFormat<T>(T input, string? format) => string.IsNullOrEmpty(format) ? input?.ToString() ?? "" : string.Format($"{{0:{format}}}", input);
-    private static string FormatFilename(string filename, string? format) => ApplyFormat(filename, format);
-    private static string FormatFilenameWithoutExt(string filename, string? format) => ApplyFormat(PathUtils.GetFileNameWithoutExtension(filename), format);
-    private static string FormatExtension(string filename, string? format) => ApplyFormat(PathUtils.GetFullExtension(filename)[1..], format);
-
-    private static string FormatDate(string filename, string? format) => string.IsNullOrEmpty(format)
-        ? DateTime.Now.ToString("s", CultureInfo.InvariantCulture)
-        : DateTime.Now.ToString(format, CultureInfo.InvariantCulture);
+    private static string FormatDate(string filename, string? format) => LibC.FormatDate(DateTime.Now, format);
 
     private static (string? Placeholder, string? Format) SplitPlaceholder(string placeholder)
     {
@@ -122,7 +180,7 @@ public class RenameAction : IAction
         return result;
     }
 
-    public RenameAction(ILogger logger, IFilesystem fs, string template, bool overwrite)
+    public RenameAction(ILogger logger, IFileSystem fs, string template, bool overwrite)
     {
         _logger = logger.ForContextShort<RenameAction>();
         _fs = fs;
@@ -134,7 +192,7 @@ public class RenameAction : IAction
     {
         _logger.Information("Renaming files...");
 
-        var targetDir = _fs.CreateTempDirectory();
+        var targetDir = _fs.Path.GetTempDirectoryName();
         try
         {
             var renames = source.GetFiles()
@@ -148,18 +206,18 @@ public class RenameAction : IAction
                     continue;
                 }
 
-                _logger.Information("{src} -> {dst}...", src.Path, dst);
+                _logger.Information("{Src} -> {Dst}...", src.Path, dst);
                 src.Move(dst, _overwrite);
             }
 
-            _logger.Information("Renaming complete");
+            _logger.Information("Complete");
             return FilesListSource.CreateMutable(_fs, targetDir);
         }
         catch (Exception)
         {
             try
             {
-                _fs.Delete(targetDir);
+                _fs.Directory.Delete(targetDir, true);
             }
             catch (Exception)
             {

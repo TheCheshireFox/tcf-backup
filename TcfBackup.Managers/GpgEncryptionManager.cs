@@ -17,18 +17,18 @@ public class GpgEncryptionManager : IEncryptionManager
     }
 
     private readonly ILogger _logger;
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
     private readonly Func<Context, Key> _getKey;
     private readonly string? _password;
 
-    private static Key KeyFromKeyFile(IFilesystem fs, Context context, string keyfile)
+    private static Key KeyFromKeyFile(IFileSystem fs, Context context, string keyfile)
     {
-        if (!fs.FileExists(keyfile))
+        if (!fs.File.Exists(keyfile))
         {
             throw new FileNotFoundException($"File or key {keyfile} not found");
         }
 
-        using var keyStream = fs.Open(keyfile, FileMode.Open, FileAccess.Read);
+        using var keyStream = fs.File.Open(keyfile, FileMode.Open, FileAccess.Read);
         using var keyFileData = new GpgmeStreamData(keyStream);
 
         var importResult = context.KeyStore.Import(keyFileData);
@@ -74,13 +74,13 @@ public class GpgEncryptionManager : IEncryptionManager
         return new GpgContext(context, _getKey(context));
     }
 
-    public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFilesystem fs, string keyFile, string? password = null)
+    public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFileSystem fs, string keyFile, string? password = null)
         => new(logger, fs, ctx => KeyFromKeyFile(fs, ctx, keyFile), password);
 
-    public static GpgEncryptionManager CreateWithSignature(ILogger logger, IFilesystem fs, string signature, string? password = null)
+    public static GpgEncryptionManager CreateWithSignature(ILogger logger, IFileSystem fs, string signature, string? password = null)
         => new(logger, fs, ctx => KeyFromStore(ctx, signature), password);
 
-    private GpgEncryptionManager(ILogger logger, IFilesystem fs, Func<Context, Key> getKey, string? password)
+    private GpgEncryptionManager(ILogger logger, IFileSystem fs, Func<Context, Key> getKey, string? password)
     {
         _logger = logger.ForContextShort<GpgEncryptionManager>();
         _fs = fs;
@@ -104,9 +104,9 @@ public class GpgEncryptionManager : IEncryptionManager
     {
         using var gpgContext = PrepareContext();
 
-        using var srcRawStream = _fs.Open(src, FileMode.Open, FileAccess.Read);
+        using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
         using var srcStream = new GpgmeStreamData(srcRawStream);
-        using var dstRawStream = _fs.Open(dst, FileMode.Create, FileAccess.Write);
+        using var dstRawStream = _fs.File.Open(dst, FileMode.Create, FileAccess.Write);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
         gpgContext.Context.Armor = true;
@@ -130,9 +130,9 @@ public class GpgEncryptionManager : IEncryptionManager
     {
         using var gpgContext = PrepareContext();
 
-        using var srcRawStream = _fs.Open(src, FileMode.Open, FileAccess.Read);
+        using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
         using var srcStream = new GpgmeStreamData(srcRawStream);
-        using var dstRawStream = _fs.Open(dst, FileMode.Create, FileAccess.Write);
+        using var dstRawStream = _fs.File.Open(dst, FileMode.Create, FileAccess.Write);
         using var dstStream = new GpgmeStreamData(dstRawStream);
 
         // ReSharper disable once AccessToDisposedClosure

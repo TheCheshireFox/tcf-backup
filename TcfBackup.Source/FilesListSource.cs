@@ -1,25 +1,35 @@
 using TcfBackup.Filesystem;
+using IFile = TcfBackup.Filesystem.IFile;
 
 namespace TcfBackup.Source;
 
 public class FilesListSource : ISource, IDisposable
 {
-    private readonly IFilesystem _fs;
-    private readonly IEnumerable<IFile> _files;
+    private readonly IFileSystem _fs;
+    private readonly List<IFile> _files;
     private readonly string? _parentDir;
 
-    public FilesListSource(IFilesystem fs, IEnumerable<IFile> files, string? parentDir = null)
+    public FilesListSource(IFileSystem fs, IEnumerable<IFile> files, string? parentDir = null)
     {
         _fs = fs;
-        _files = files;
+        _files = files.ToList();
         _parentDir = parentDir;
     }
 
-    public static FilesListSource CreateMutable(IFilesystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new MutableFile(fs, f)));
-    public static FilesListSource CreateImmutable(IFilesystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new ImmutableFile(fs, f)));
+    public static FilesListSource CreateMutable(IFileSystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new MutableFile(fs, f)));
+    public static FilesListSource CreateImmutable(IFileSystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new ImmutableFile(fs, f)));
 
-    public static FilesListSource CreateMutable(IFilesystem fs, string dir) => new(fs, fs.GetFiles(dir).Select(f => (IFile)new MutableFile(fs, f)), dir);
-    
+    public static FilesListSource CreateMutable(IFileSystem fs, string dir)
+    {
+        var files = fs.Directory.EnumerateFiles(dir, "*", new EnumerationOptions()
+        {
+            IgnoreInaccessible = false,
+            RecurseSubdirectories = true,
+            ReturnSpecialDirectories = false
+        });
+        return new(fs, files.Select(f => (IFile)new MutableFile(fs, f)), dir);
+    }
+
     public IEnumerable<IFile> GetFiles() => _files;
 
     public void Prepare()
@@ -44,7 +54,7 @@ public class FilesListSource : ISource, IDisposable
         {
             try
             {
-                _fs.Delete(_parentDir);
+                _fs.Directory.Delete(_parentDir, true);
             }
             catch (Exception)
             {

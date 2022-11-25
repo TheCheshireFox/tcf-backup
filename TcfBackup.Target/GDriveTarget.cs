@@ -9,13 +9,13 @@ public class GDriveTarget : ITarget
 {
     private readonly ILogger _logger;
     private readonly IGDriveAdapter _gDriveAdapter;
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
     private readonly string? _directoryId;
 
     public string Scheme => TargetSchemes.GDrive;
     public string Directory { get; }
     
-    public GDriveTarget(ILogger logger, IGDriveAdapter gDriveAdapter, IFilesystem fs, string? path)
+    public GDriveTarget(ILogger logger, IGDriveAdapter gDriveAdapter, IFileSystem fs, string? path)
     {
         Directory = path ?? "/";
         
@@ -31,7 +31,7 @@ public class GDriveTarget : ITarget
         {
             _logger.Information("Uploading {Path}...", file.Path);
 
-            using var stream = _fs.Open(file.Path, FileMode.Open, FileAccess.Read);
+            using var stream = _fs.File.Open(file.Path, FileMode.Open, FileAccess.Read);
             _gDriveAdapter.UploadFile(stream, Path.GetFileName(file.Path), _directoryId, cancellationToken);
 
             _logger.Information("Complete");

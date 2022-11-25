@@ -4,7 +4,7 @@ cd "$(dirname "$0")" || exit
 
 function dotnet_publish()
 {
-	dotnet publish -c Release -nologo -clp:NoSummary -verbosity:quiet "${@}" TcfBackup/TcfBackup.csproj
+	dotnet publish -c Release -nologo -clp:NoSummary -verbosity:quiet /p:SolutionDir="$(pwd)" "${@}" TcfBackup/TcfBackup.csproj
 }
 
 function dotnet_publish_portable() {

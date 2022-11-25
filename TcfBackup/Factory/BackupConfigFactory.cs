@@ -5,22 +5,24 @@ using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using TcfBackup.Action;
+using TcfBackup.Compressor;
 using TcfBackup.Configuration.Action;
 using TcfBackup.Configuration.Source;
 using TcfBackup.Configuration.Target;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
-using TcfBackup.Restore;
 using TcfBackup.Source;
 using TcfBackup.Target;
-using CompressAlgorithm = TcfBackup.Managers.CompressAlgorithm;
+using BZip2Options = TcfBackup.Configuration.Action.BZip2Options;
+using GZipOptions = TcfBackup.Configuration.Action.GZipOptions;
+using XzOptions = TcfBackup.Configuration.Action.XzOptions;
 
 [module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled by Microsoft.Extensions.Configuration")]
 
 namespace TcfBackup.Factory;
 
-public class BackupConfigFactory : IFactory, IRestoreInfoFactory
+public class BackupConfigFactory : IFactory
 {
     private static readonly Dictionary<SourceType, Type> s_sourceTypeMapping = new()
     {
@@ -37,8 +39,9 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
 
     private readonly IConfiguration _config;
     private readonly ILogger _logger;
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
     private readonly IGDriveAdapter _gDriveAdapter;
+    private readonly ICompressorStreamFactory _compressorStreamFactory;
 
     private IEncryptionManager CreateGpgEncryptionManager(GpgEncryptionActionOptions opts)
     {
@@ -70,11 +73,6 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
         return new BtrfsManager();
     }
 
-    private ICompressionManager CreateCompressionManager()
-    {
-        return new CompressionManager(_logger, _fs);
-    }
-
     private IEncryptionManager CreateEncryptionManager(EncryptionActionOptions opts)
     {
         return opts switch
@@ -89,18 +87,38 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
         return new LxdManager(_logger, opts.Address);
     }
 
-    private IAction CreateCompressAction(CompressActionOptions opts)
+    private ICompressionManager CreateTarCompressionManager(IConfiguration configurationSection)
     {
-        var compressAlgorithms = opts.Algorithms.Select(algo => algo switch
+        var compressorType = configurationSection.GetValue<TarCompressor>("compressor");
+        var tarCompressionAlgorithm = compressorType switch
         {
-            Configuration.Action.CompressAlgorithm.Gzip => CompressAlgorithm.Gzip,
-            Configuration.Action.CompressAlgorithm.Xz => CompressAlgorithm.Xz,
-            Configuration.Action.CompressAlgorithm.BZip2 => CompressAlgorithm.BZip2,
-            _ => throw new NotSupportedException($"Compression algorithm {opts.Algorithms} not supported")
-        }).ToArray();
+            TarCompressor.Gzip => CompressAlgorithm.Gzip,
+            TarCompressor.Xz => CompressAlgorithm.Xz,
+            TarCompressor.BZip2 => CompressAlgorithm.BZip2,
+            var unsupportedAlgorithm => throw new NotSupportedException($"Compression algorithm {unsupportedAlgorithm} not supported")
+        };
 
-        return new CompressAction(_logger, CreateCompressionManager(), _fs, compressAlgorithms, opts.Name, opts.ChangeDir,
-            opts.FollowSymlinks);
+        var optionsSection = configurationSection.GetSection("options");
+        var factory = new TarCompressionManagerCompressorFactory(tarCompressionAlgorithm switch
+        {
+            CompressAlgorithm.Gzip => output => _compressorStreamFactory.CreateGZip(TarCompressOptionsMapper.Map(optionsSection.Get<GZipOptions?>()), output),
+            CompressAlgorithm.Xz => output => _compressorStreamFactory.CreateXz(TarCompressOptionsMapper.Map(optionsSection.Get<XzOptions?>()), output),
+            CompressAlgorithm.BZip2 => output => _compressorStreamFactory.CreateBZip2(TarCompressOptionsMapper.Map(optionsSection.Get<BZip2Options?>()), output),
+            var unsupportedAlgorithm => throw new NotSupportedException($"Compression algorithm {unsupportedAlgorithm} not supported")
+        });
+
+        return new TarCompressionManager(_logger, _fs, factory, tarCompressionAlgorithm);
+    }
+    
+    private IAction CreateCompressAction(CompressActionOptions opts, IConfiguration configurationSection)
+    {
+        var manager = opts.Engine switch
+        {
+            CompressEngine.Tar => CreateTarCompressionManager(configurationSection),
+            var notSupportedEngine => throw new NotSupportedException($"Compression engine {notSupportedEngine} not supported")
+        };
+
+        return new CompressAction(_logger, manager, _fs, opts.Name, opts.ChangeDir, opts.FollowSymlinks);
     }
 
     private IAction CreateEncryptAction(EncryptionActionOptions opts)
@@ -139,31 +157,23 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
             {
                 EncryptionEngine.Openssl => typeof(OpensslEncryptionActionOptions),
                 EncryptionEngine.Gpg => typeof(GpgEncryptionActionOptions),
-                _ => throw new NotSupportedException(
-                    $"Encryption engine {cfg.GetValue<EncryptionEngine>("engine")} not supported")
+                _ => throw new NotSupportedException($"Encryption engine {cfg.GetValue<EncryptionEngine>("engine")} not supported")
             },
             var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction} not supported")
         };
     }
 
-    private TargetOptions GetTargetOptions() =>
-        (TargetOptions)_config.Get(cfg => s_targetTypeMapping[cfg.GetValue<TargetType>("type")], "target");
-
-    private SourceOptions GetSourceOptions() =>
-        (SourceOptions)_config.Get(cfg => s_sourceTypeMapping[cfg.GetValue<SourceType>("type")], "source");
-
-    private IEnumerable<ActionOptions> GetActionOptions() =>
-        _config.GetSection("actions").GetChildren().Select(s => (ActionOptions)s.Get(GetActionOptionsType));
-
     public BackupConfigFactory(ILogger logger,
-        IFilesystem fs,
+        IFileSystem fs,
         IGDriveAdapter gDriveAdapter,
+        ICompressorStreamFactory compressorStreamFactory,
         IConfiguration config)
     {
         _config = config;
         _logger = logger;
         _fs = fs;
         _gDriveAdapter = gDriveAdapter;
+        _compressorStreamFactory = compressorStreamFactory;
 
         if (_config == null)
         {
@@ -193,7 +203,7 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
     {
         return _config.GetSection("actions").GetChildren().Select(s => (ActionOptions)s.Get(GetActionOptionsType) switch
         {
-            CompressActionOptions compressOpts => CreateCompressAction(compressOpts),
+            CompressActionOptions compressOpts => CreateCompressAction(compressOpts, s),
             EncryptionActionOptions encryptOpts => CreateEncryptAction(encryptOpts),
             FilterActionOptions filterOpts => CreteFilterAction(filterOpts),
             RenameActionOptions renameOpts => CreateRenameAction(renameOpts),
@@ -207,53 +217,9 @@ public class BackupConfigFactory : IFactory, IRestoreInfoFactory
 
         return target switch
         {
-            DirectoryTargetOptions dirOpts => new DirTarget(_fs, dirOpts.Path, dirOpts.Overwrite),
+            DirectoryTargetOptions dirOpts => new DirTarget(_logger, _fs, dirOpts.Path, dirOpts.Overwrite),
             GDriveTargetOptions gDriveOpts => new GDriveTarget(_logger, _gDriveAdapter, _fs, gDriveOpts.Path),
             var notSupportedTarget => throw new NotSupportedException($"Target {notSupportedTarget.Type} not supported")
-        };
-    }
-
-    public IRestoreSourceInfo GetRestoreSourceInfo()
-    {
-        return GetTargetOptions() switch
-        {
-            DirectoryTargetOptions opts => new DirRestoreSourceInfo { Directory = opts.Path },
-            GDriveTargetOptions opts => new GDriveRestoreSourceInfo { Directory = opts.Path },
-            var notSupportedTarget => throw new NotSupportedException($"Target {notSupportedTarget.Type} not supported")
-        };
-    }
-
-    public IEnumerable<IRestoreActionInfo> GetRestoreActionInfo()
-    {
-        return GetActionOptions()
-            .Select<ActionOptions, IRestoreActionInfo?>(actionOpt => actionOpt switch
-            {
-                CompressActionOptions _ => new DecompressRestoreActionInfo(),
-                EncryptionActionOptions opts => opts switch
-                {
-                    GpgEncryptionActionOptions gpgOpts => new DecryptRestoreActionInfo
-                    {
-                        Password = gpgOpts.Password,
-                        Signature = gpgOpts.Signature,
-                        KeyFile = gpgOpts.KeyFile
-                    },
-                    _ => throw new ArgumentOutOfRangeException(nameof(opts), opts, null)
-                },
-                _ => null
-            })
-            .Where(o => o != null)
-            .Reverse()
-            .Select(o => o!);
-    }
-
-    public IRestoreTargetInfo GetRestoreTargetInfo()
-    {
-        return GetSourceOptions() switch
-        {
-            BtrfsSourceOptions opts => new DirRestoreTargetInfo { Directory = opts.Subvolume },
-            DirectorySourceOptions opts => new DirRestoreTargetInfo { Directory = opts.Path },
-            LxdSourceOptions opts => new LxdRestoreTargetInfo(),
-            var notSupportedSource => throw new NotSupportedException($"Source {notSupportedSource.Type} not supported")
         };
     }
 }

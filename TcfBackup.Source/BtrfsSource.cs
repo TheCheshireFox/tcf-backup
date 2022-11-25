@@ -2,6 +2,7 @@ using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Shared;
+using IFile = TcfBackup.Filesystem.IFile;
 
 namespace TcfBackup.Source;
 
@@ -9,7 +10,7 @@ public class BtrfsSource : ISource, ISymlinkFilterable
 {
     private readonly ILogger _logger;
     private readonly IBtrfsManager _btrfsManager;
-    private readonly IFilesystem _filesystem;
+    private readonly IFileSystem _filesystem;
     private readonly string _subvolume;
     private readonly string? _snapshot;
 
@@ -21,25 +22,27 @@ public class BtrfsSource : ISource, ISymlinkFilterable
             : directoryInfo.Name;
     }
     
-    public BtrfsSource(ILogger logger, IBtrfsManager btrfsManager, IFilesystem filesystem, string subvolume, string? snapshotDir)
+    public BtrfsSource(ILogger logger, IBtrfsManager btrfsManager, IFileSystem filesystem, string subvolume, string? snapshotDir)
     {
         _logger = logger.ForContextShort<BtrfsSource>();
         _btrfsManager = btrfsManager;
         _filesystem = filesystem;
         _subvolume = subvolume;
 
-        if (!_filesystem.DirectoryExists(subvolume)) throw new DirectoryNotFoundException(subvolume);
+        if (!_filesystem.Directory.Exists(subvolume)) throw new DirectoryNotFoundException(subvolume);
         if (snapshotDir == null) return;
 
-        _snapshot = filesystem.DirectoryExists(snapshotDir)
+        _snapshot = filesystem.Directory.Exists(snapshotDir)
             ? Path.Combine(snapshotDir, GetSubvolumeName(subvolume))
-            : filesystem.DirectoryExists(Path.GetDirectoryName(snapshotDir))
+            : filesystem.Directory.Exists(Path.GetDirectoryName(snapshotDir))
                 ? snapshotDir
                 : throw new DirectoryNotFoundException(snapshotDir);
     }
 
     public IEnumerable<IFile> GetFiles() => GetFiles(false);
-    public IEnumerable<IFile> GetFiles(bool followSymlinks) => _filesystem.GetFiles(_snapshot ?? _subvolume, followSymlinks: followSymlinks).Select(f => (IFile)new ImmutableFile(_filesystem, f));
+    public IEnumerable<IFile> GetFiles(bool followSymlinks) => _filesystem.Directory
+        .GetFiles(_snapshot ?? _subvolume, recursive: true, sameFilesystem: true, skipAccessDenied: true, followSymlinks)
+        .Select(f => (IFile)new ImmutableFile(_filesystem, f));
 
     public void Prepare()
     {

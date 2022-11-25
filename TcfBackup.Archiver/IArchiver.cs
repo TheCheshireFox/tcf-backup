@@ -2,5 +2,5 @@ namespace TcfBackup.Archiver;
 
 public interface IArchiver : IDisposable
 {
-    Stream Output { get; }
+    void AddEntry(string path);
 }

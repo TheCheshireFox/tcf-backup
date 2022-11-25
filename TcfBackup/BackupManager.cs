@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using TcfBackup.Action;
+using TcfBackup.BackupDatabase;
 using TcfBackup.Configuration.Global;
-using TcfBackup.Database.Repository;
 using TcfBackup.Factory;
 using TcfBackup.Retention;
 using TcfBackup.Source;
@@ -34,7 +34,7 @@ public class BackupManager
         }
     }
 
-    private async Task WriteBackups(ITarget target, ISource result, CancellationToken cancellationToken)
+    private void WriteBackups(ITarget target, ISource result)
     {
         var targetDirectory = target.GetTargetDirectory();
 
@@ -47,10 +47,10 @@ public class BackupManager
         {
             Date = DateTime.UtcNow,
             Name = _globalOptions.Name,
-            Files = files
+            Files = files.ToList()
         };
 
-        await _backupRepository.AddBackupAsync(backup, cancellationToken);
+        _backupRepository.AddBackup(backup);
     }
     
     public BackupManager(IOptions<GlobalOptions> globalOptions, IFactory factory, IRetentionManager retentionManager, IBackupRepository backupRepository)
@@ -80,7 +80,7 @@ public class BackupManager
             {
                 target.Apply(result, cancellationToken);
 
-                await WriteBackups(target, result, cancellationToken);
+                WriteBackups(target, result);
                 await _retentionManager.PerformCleanupAsync(cancellationToken);
             }
             finally

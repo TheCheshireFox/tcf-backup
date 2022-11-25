@@ -10,7 +10,7 @@ public class BackupCleanerFactory : IBackupCleanerFactory
 {
     private readonly Dictionary<string, Lazy<IBackupCleaner>> _cleanersByScheme;
 
-    public BackupCleanerFactory(IFilesystem fs, IGDriveAdapter gDriveAdapter)
+    public BackupCleanerFactory(IFileSystem fs, IGDriveAdapter gDriveAdapter)
     {
         _cleanersByScheme = new Dictionary<string, Lazy<IBackupCleaner>>
         {

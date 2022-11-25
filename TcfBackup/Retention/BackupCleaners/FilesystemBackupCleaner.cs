@@ -6,9 +6,9 @@ namespace TcfBackup.Retention.BackupCleaners;
 
 public class FilesystemBackupCleaner : IBackupCleaner
 {
-    private readonly IFilesystem _fs;
+    private readonly IFileSystem _fs;
 
-    public FilesystemBackupCleaner(IFilesystem fs)
+    public FilesystemBackupCleaner(IFileSystem fs)
     {
         _fs = fs;
     }
@@ -17,7 +17,7 @@ public class FilesystemBackupCleaner : IBackupCleaner
     {
         try
         {
-            _fs.Delete(path);
+            _fs.File.Delete(path);
         }
         catch (FileNotFoundException)
         {
