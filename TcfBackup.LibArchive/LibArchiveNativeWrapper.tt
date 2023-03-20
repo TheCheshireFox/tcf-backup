@@ -1,0 +1,136 @@
+<#@ template language="C#" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#
+    var archiveArgName = "archive";
+    var errorMessages = new Dictionary<string, string>
+    {
+        { "archive_write_new", "Unable to create archive" },
+        { "archive_read_disk_new", "Unable to create disk reader" },
+        { "archive_entry_copy_pathname", "Unable to set path for entry" },
+        { "archive_write_add_filter", "Unable to add filter" },
+        { "archive_write_set_format_pax_restricted", "Unable to set tar format" },
+        { "archive_write_open_filename", "Unable to open archive for write" },
+        { "archive_read_disk_entry_from_file", "Unable to read file from disk" },
+        { "archive_entry_new", "Unable to create file entry" },
+        { "archive_entry_clear", "Unable to clear file entry" },
+        { "archive_entry_free", "Unable to free entry" },
+        { "archive_write_header", "Unable to write header" },
+        { "archive_write_data", "Unable to write data" },
+        { "archive_write_close", "Unable to close data write stream" },
+        { "archive_free", "Unable to free archive memory" },
+        { "archive_write_set_options", "Unable to set archive options" },
+    };
+
+    var ignoreMethods = new string[]
+    {
+        //"archive_set_error"
+    };
+#>
+namespace TcfBackup.LibArchive;
+
+public static class LibArchiveNativeWrapper
+{
+    private static RetCode ThrowIfError(nint archive, RetCode retCode, string message)
+    {
+        if (retCode == RetCode.Ok)
+        {
+            return retCode;
+        }
+
+        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{LibArchiveNative.archive_error_string(archive)}");
+    }
+
+    private static RetCode ThrowIfError(RetCode retCode, string message)
+    {
+        if (retCode == RetCode.Ok)
+        {
+            return retCode;
+        }
+
+        throw new LibArchiveException(retCode, $"[{retCode}]: {message}");
+    }
+    
+    private static nint ThrowIfError(nint ptr, string message)
+    {
+        if (ptr != nint.Zero)
+        {
+            return ptr;
+        }
+
+        throw new LibArchiveException(message);
+    }
+
+<#
+var classFilePath = Host.ResolvePath("LibArchiveNative.cs");
+var lines = File.ReadAllLines(classFilePath);
+var methods = new List<ExternMethod>();
+
+foreach (var line in lines)
+{
+      var methodLine = line.Trim();
+      if (!methodLine.StartsWith("public static extern"))
+      {
+            continue;
+      }
+
+      var match = Regex.Match(methodLine, @"public static extern (.+?) (.+?)\((.*)\);");
+      var externMethod = new ExternMethod()
+      {
+            RetType = match.Groups[1].ToString(),
+            Name = match.Groups[2].ToString()
+      };
+
+      var args = match.Groups[3].ToString();
+      if (!string.IsNullOrEmpty(args))
+      {
+            foreach (var arg in args.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()))
+            {
+                  var toks = arg.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray();
+                  externMethod.Args.Add((string.Join(" ", toks.Take(toks.Length - 1)), toks.Last()));
+            }
+      }
+      
+      methods.Add(externMethod);
+}
+
+foreach (var method in methods)
+{
+    if (ignoreMethods.Contains(method.Name))
+    {
+        continue;
+    }
+    
+    var argsDef = string.Join(", ", method.Args.Select(a => $"{a.Type} {a.Name}"));
+    var args = string.Join(", ", method.Args.Select(a => a.Type.StartsWith("ref") ? $"ref {a.Name}" : a.Name));
+    WriteLine($"    public static {method.RetType} {method.Name}({argsDef})");
+
+    if (method.RetType != "nint" && method.RetType != "RetCode")
+    {
+        WriteLine($"        => LibArchiveNative.{method.Name}({args});");
+    }
+    else
+    {
+        if (!errorMessages.TryGetValue(method.Name, out var errorMessage))
+        {
+            errorMessage = "string.Empty";
+        }
+
+        WriteLine(method.Args.Any(a => a.Name == archiveArgName && a.Type == "nint")
+            ? $"        => ThrowIfError(archive, LibArchiveNative.{method.Name}({args}), \"{errorMessage}\");"
+            : $"        => ThrowIfError(LibArchiveNative.{method.Name}({args}), \"{errorMessage}\");");
+    }
+}
+#>
+}
+<#+
+      class ExternMethod
+      {
+            public string Name { get; set; }
+            public string RetType { get; set; }
+            public List<(string Type, string Name)> Args { get; set; } = new();
+      }
+#>

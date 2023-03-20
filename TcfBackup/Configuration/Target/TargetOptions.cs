@@ -3,7 +3,7 @@ namespace TcfBackup.Configuration.Target;
 public enum TargetType
 {
     None,
-    Directory,
+    Dir,
     GDrive
 }
 

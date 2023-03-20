@@ -1,10 +1,9 @@
 using System.IO.Abstractions;
 using System.IO.Enumeration;
-using System.Security.AccessControl;
 
 namespace TcfBackup.Filesystem;
 
-internal class OptimizedDirectory : IOptimizedDirectory
+public class OptimizedDirectory : IOptimizedDirectory
 {
     private readonly IDirectory _directory;
 
@@ -49,20 +48,19 @@ internal class OptimizedDirectory : IOptimizedDirectory
     }
     
     public IDirectoryInfo CreateDirectory(string path) => _directory.CreateDirectory(path);
-
-    public IDirectoryInfo CreateDirectory(string path, DirectorySecurity directorySecurity) => _directory.CreateDirectory(path, directorySecurity);
+    public IDirectoryInfo CreateDirectory(string path, UnixFileMode unixCreateMode) => _directory.CreateDirectory(path, unixCreateMode);
 
     public IFileSystemInfo CreateSymbolicLink(string path, string pathToTarget) => _directory.CreateSymbolicLink(path, pathToTarget);
+    public IDirectoryInfo CreateTempSubdirectory(string? prefix = null)
+    {
+        throw new NotImplementedException();
+    }
 
     public void Delete(string path) => _directory.Delete(path);
 
     public void Delete(string path, bool recursive) => _directory.Delete(path, recursive);
 
     public bool Exists(string path) => _directory.Exists(path);
-
-    public DirectorySecurity GetAccessControl(string path) => _directory.GetAccessControl(path);
-
-    public DirectorySecurity GetAccessControl(string path, AccessControlSections includeSections) => _directory.GetAccessControl(path, includeSections);
 
     public DateTime GetCreationTime(string path) => _directory.GetCreationTime(path);
 
@@ -93,6 +91,7 @@ internal class OptimizedDirectory : IOptimizedDirectory
     public string[] GetFileSystemEntries(string path, string searchPattern) => _directory.GetFileSystemEntries(path, searchPattern);
 
     public string[] GetFileSystemEntries(string path, string searchPattern, SearchOption searchOption) => _directory.GetFileSystemEntries(path, searchPattern, searchOption);
+    public string[] GetFileSystemEntries(string path, string searchPattern, EnumerationOptions enumerationOptions) => _directory.GetFileSystemEntries(path, searchPattern, enumerationOptions);
 
     public DateTime GetLastAccessTime(string path) => _directory.GetLastAccessTime(path);
 
@@ -107,8 +106,7 @@ internal class OptimizedDirectory : IOptimizedDirectory
     public IDirectoryInfo GetParent(string path) => _directory.GetParent(path);
 
     public void Move(string sourceDirName, string destDirName) => _directory.Move(sourceDirName, destDirName);
-
-    public void SetAccessControl(string path, DirectorySecurity directorySecurity) => _directory.SetAccessControl(path, directorySecurity);
+    public IFileSystemInfo? ResolveLinkTarget(string linkPath, bool returnFinalTarget) => _directory.ResolveLinkTarget(linkPath, returnFinalTarget);
 
     public void SetCreationTime(string path, DateTime creationTime) => _directory.SetCreationTime(path, creationTime);
 

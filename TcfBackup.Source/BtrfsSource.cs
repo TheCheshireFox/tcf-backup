@@ -2,11 +2,10 @@ using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Shared;
-using IFile = TcfBackup.Filesystem.IFile;
 
 namespace TcfBackup.Source;
 
-public class BtrfsSource : ISource, ISymlinkFilterable
+public class BtrfsSource : IFileListSource
 {
     private readonly ILogger _logger;
     private readonly IBtrfsManager _btrfsManager;

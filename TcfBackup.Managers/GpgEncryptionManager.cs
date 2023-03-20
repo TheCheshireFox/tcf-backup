@@ -45,11 +45,11 @@ public class GpgEncryptionManager : IEncryptionManager
         return context.KeyStore.GetKey(importResult.Imports.Fpr, false);
     }
 
-    private static Key KeyFromStore(Context context, string signature)
+    private static Key KeyFromStore(Context context, string keyId)
     {
         return context.KeyStore
             .GetKeyList("", false)
-            .FirstOrDefault(k => k.Fingerprint == signature) ?? throw new Libgpgme.KeyNotFoundException($"Key with signature {signature} not found.");
+            .FirstOrDefault(k => k.Fingerprint == keyId) ?? throw new Libgpgme.KeyNotFoundException($"Key with id {keyId} not found.");
     }
 
     private GpgContext PrepareContext()
@@ -77,8 +77,8 @@ public class GpgEncryptionManager : IEncryptionManager
     public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFileSystem fs, string keyFile, string? password = null)
         => new(logger, fs, ctx => KeyFromKeyFile(fs, ctx, keyFile), password);
 
-    public static GpgEncryptionManager CreateWithSignature(ILogger logger, IFileSystem fs, string signature, string? password = null)
-        => new(logger, fs, ctx => KeyFromStore(ctx, signature), password);
+    public static GpgEncryptionManager CreateWithKeyId(ILogger logger, IFileSystem fs, string keyId, string? password = null)
+        => new(logger, fs, ctx => KeyFromStore(ctx, keyId), password);
 
     private GpgEncryptionManager(ILogger logger, IFileSystem fs, Func<Context, Key> getKey, string? password)
     {
@@ -99,22 +99,20 @@ public class GpgEncryptionManager : IEncryptionManager
             throw new FileNotFoundException("Unable to locate libgpg library.");
         }
     }
-    
-    public void Encrypt(string src, string dst, CancellationToken cancellationToken)
+
+    public void Encrypt(Stream src, Stream dst, CancellationToken cancellationToken)
     {
         using var gpgContext = PrepareContext();
-
-        using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
-        using var srcStream = new GpgmeStreamData(srcRawStream);
-        using var dstRawStream = _fs.File.Open(dst, FileMode.Create, FileAccess.Write);
-        using var dstStream = new GpgmeStreamData(dstRawStream);
+        
+        using var srcStream = new GpgmeStreamData(src);
+        using var dstStream = new GpgmeStreamData(dst);
 
         gpgContext.Context.Armor = true;
 
         // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
-
-        _logger.Information("Encryption of file {Source} to {Target}...", src, dst);
+        
+        _logger.Information("Encryption of stream...");
         try
         {
             gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
@@ -124,6 +122,15 @@ public class GpgEncryptionManager : IEncryptionManager
             cancellationToken.ThrowIfCancellationRequested();
             throw;
         }
+    }
+    
+    public void Encrypt(string src, string dst, CancellationToken cancellationToken)
+    {
+        using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
+        using var dstRawStream = _fs.File.Open(dst, FileMode.Create, FileAccess.Write);
+
+        _logger.Information("Encryption of file {Source} to {Target}...", src, dst);
+        Encrypt(srcRawStream, dstRawStream, cancellationToken);
     }
 
     public void Decrypt(string src, string dst, CancellationToken cancellationToken)

@@ -5,7 +5,6 @@ using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using TcfBackup.Action;
-using TcfBackup.Compressor;
 using TcfBackup.Configuration.Action;
 using TcfBackup.Configuration.Source;
 using TcfBackup.Configuration.Target;
@@ -14,9 +13,6 @@ using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Source;
 using TcfBackup.Target;
-using BZip2Options = TcfBackup.Configuration.Action.BZip2Options;
-using GZipOptions = TcfBackup.Configuration.Action.GZipOptions;
-using XzOptions = TcfBackup.Configuration.Action.XzOptions;
 
 [module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled by Microsoft.Extensions.Configuration")]
 
@@ -33,7 +29,7 @@ public class BackupConfigFactory : IFactory
 
     private static readonly Dictionary<TargetType, Type> s_targetTypeMapping = new()
     {
-        { TargetType.Directory, typeof(DirectoryTargetOptions) },
+        { TargetType.Dir, typeof(DirectoryTargetOptions) },
         { TargetType.GDrive, typeof(GDriveTargetOptions) },
     };
 
@@ -41,16 +37,15 @@ public class BackupConfigFactory : IFactory
     private readonly ILogger _logger;
     private readonly IFileSystem _fs;
     private readonly IGDriveAdapter _gDriveAdapter;
-    private readonly ICompressorStreamFactory _compressorStreamFactory;
 
     private IEncryptionManager CreateGpgEncryptionManager(GpgEncryptionActionOptions opts)
     {
-        if (string.IsNullOrEmpty(opts.KeyFile) && string.IsNullOrEmpty(opts.Signature))
+        if (string.IsNullOrEmpty(opts.KeyFile) && string.IsNullOrEmpty(opts.KeyId))
         {
             throw new FormatException("No keyfile or signature specified for encryption manager.");
         }
 
-        if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.Signature))
+        if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.KeyId))
         {
             throw new FormatException("Both the keyfile and signature are specified. You can choose only one.");
         }
@@ -60,9 +55,9 @@ public class BackupConfigFactory : IFactory
             return GpgEncryptionManager.CreateWithKeyFile(_logger, _fs, opts.KeyFile, opts.Password);
         }
 
-        if (!string.IsNullOrEmpty(opts.Signature))
+        if (!string.IsNullOrEmpty(opts.KeyId))
         {
-            return GpgEncryptionManager.CreateWithSignature(_logger, _fs, opts.Signature, opts.Password);
+            return GpgEncryptionManager.CreateWithKeyId(_logger, _fs, opts.KeyId, opts.Password);
         }
 
         throw new NotSupportedException("Specified gpg configuration not supported");
@@ -95,19 +90,21 @@ public class BackupConfigFactory : IFactory
             TarCompressor.Gzip => CompressAlgorithm.Gzip,
             TarCompressor.Xz => CompressAlgorithm.Xz,
             TarCompressor.BZip2 => CompressAlgorithm.BZip2,
-            var unsupportedAlgorithm => throw new NotSupportedException($"Compression algorithm {unsupportedAlgorithm} not supported")
+            _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
         };
 
+        var tarOptions = configurationSection.Get<TarOptions>() ?? new TarOptions();
+        
         var optionsSection = configurationSection.GetSection("options");
-        var factory = new TarCompressionManagerCompressorFactory(tarCompressionAlgorithm switch
+        var factory = tarCompressionAlgorithm switch
         {
-            CompressAlgorithm.Gzip => output => _compressorStreamFactory.CreateGZip(TarCompressOptionsMapper.Map(optionsSection.Get<GZipOptions?>()), output),
-            CompressAlgorithm.Xz => output => _compressorStreamFactory.CreateXz(TarCompressOptionsMapper.Map(optionsSection.Get<XzOptions?>()), output),
-            CompressAlgorithm.BZip2 => output => _compressorStreamFactory.CreateBZip2(TarCompressOptionsMapper.Map(optionsSection.Get<BZip2Options?>()), output),
-            var unsupportedAlgorithm => throw new NotSupportedException($"Compression algorithm {unsupportedAlgorithm} not supported")
-        });
+            CompressAlgorithm.Gzip => TarArchiverFactory.CreateGZip2(tarOptions, optionsSection.Get<GZipOptions?>()),
+            CompressAlgorithm.Xz => TarArchiverFactory.CreateXz(tarOptions, optionsSection.Get<XzOptions?>()),
+            CompressAlgorithm.BZip2 => TarArchiverFactory.CreateBZip(tarOptions, optionsSection.Get<BZip2Options?>()),
+            _ => throw new NotSupportedException($"Compression algorithm {tarCompressionAlgorithm} not supported")
+        };
 
-        return new TarCompressionManager(_logger, _fs, factory, tarCompressionAlgorithm);
+        return new CompressionManager(_logger, factory, tarCompressionAlgorithm);
     }
     
     private IAction CreateCompressAction(CompressActionOptions opts, IConfiguration configurationSection)
@@ -118,7 +115,7 @@ public class BackupConfigFactory : IFactory
             var notSupportedEngine => throw new NotSupportedException($"Compression engine {notSupportedEngine} not supported")
         };
 
-        return new CompressAction(_logger, manager, _fs, opts.Name, opts.ChangeDir, opts.FollowSymlinks);
+        return new CompressAction(_logger, manager, opts.Name);
     }
 
     private IAction CreateEncryptAction(EncryptionActionOptions opts)
@@ -166,14 +163,12 @@ public class BackupConfigFactory : IFactory
     public BackupConfigFactory(ILogger logger,
         IFileSystem fs,
         IGDriveAdapter gDriveAdapter,
-        ICompressorStreamFactory compressorStreamFactory,
         IConfiguration config)
     {
         _config = config;
         _logger = logger;
         _fs = fs;
         _gDriveAdapter = gDriveAdapter;
-        _compressorStreamFactory = compressorStreamFactory;
 
         if (_config == null)
         {

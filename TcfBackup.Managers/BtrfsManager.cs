@@ -58,7 +58,7 @@ public class BtrfsManager : IBtrfsManager
         }
             
         [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl, EntryPoint = "btrfs_util_create_snapshot")]
-        public static extern BtrfsUtilError CreateSnapshot(string source, string path, CreateSnapshotFlags flags, IntPtr unused, IntPtr qgroupInherit);
+        public static extern BtrfsUtilError CreateSnapshot(string source, string path, CreateSnapshotFlags flags, nint unused, nint qgroupInherit);
             
         [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl, EntryPoint = "btrfs_util_delete_subvolume")]
         public static extern BtrfsUtilError DeleteSubvolume(string path, DeleteSnapshotFlags flags);
@@ -71,7 +71,7 @@ public class BtrfsManager : IBtrfsManager
 
     public void CreateSnapshot(string subvolume, string targetDir)
     {
-        var ret = BtrfsUtil.CreateSnapshot(subvolume, targetDir, BtrfsUtil.CreateSnapshotFlags.ReadOnly, IntPtr.Zero, IntPtr.Zero);
+        var ret = BtrfsUtil.CreateSnapshot(subvolume, targetDir, BtrfsUtil.CreateSnapshotFlags.ReadOnly, nint.Zero, nint.Zero);
         if (ret != BtrfsUtil.BtrfsUtilError.OK)
         {
             throw new Exception($"Unable to create snapshot: {ret}");

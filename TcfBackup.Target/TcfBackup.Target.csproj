@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU;arm64;x64</Platforms>
     </PropertyGroup>
-
+    
     <ItemGroup>
         <ProjectReference Include="..\TcfBackup.GDriveAdapter\TcfBackup.GDriveAdapter.csproj" />
         <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />

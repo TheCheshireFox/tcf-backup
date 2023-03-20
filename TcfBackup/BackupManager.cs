@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -14,6 +15,68 @@ using TcfBackup.Target;
 
 namespace TcfBackup;
 
+public class BackupActionContext : IActionContext, IDisposable
+{
+    private ISource _currentSource;
+    private readonly List<ISource> _sources = new();
+
+    public BackupActionContext(ISource source)
+    {
+        _currentSource = source;
+    }
+    
+    public bool TryGetFileListSource(out IFileListSource source)
+    {
+        if (_currentSource is IFileListSource fileListSource)
+        {
+            source = fileListSource;
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
+
+    public bool TryGetStreamSource(out IStreamSource source)
+    {
+        if (_currentSource is IStreamSource streamSource)
+        {
+            source = streamSource;
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
+
+    public void SetResult(IFileListSource source)
+    {
+        _sources.Add(_currentSource = source);
+    }
+
+    public void SetResult(IStreamSource source)
+    {
+        _sources.Add(_currentSource = source);
+    }
+
+    public void Dispose()
+    {
+        foreach (var source in ((IEnumerable<ISource>)_sources).Reverse())
+        {
+            try
+            {
+                source.Cleanup();
+            }
+            catch (Exception)
+            {
+                // NOP
+            }
+        }
+
+        GC.SuppressFinalize(this);
+    }
+}
+
 public class BackupManager
 {
     private readonly GlobalOptions _globalOptions;
@@ -21,35 +84,22 @@ public class BackupManager
     private readonly IBackupRepository _backupRepository;
     private readonly IRetentionManager _retentionManager;
 
-    private static ISource ApplyAction(ISource source, IAction action, CancellationToken cancellationToken)
-    {
-        source.Prepare();
-        try
-        {
-            return action.Apply(source, cancellationToken);
-        }
-        finally
-        {
-            source.Cleanup();
-        }
-    }
-
-    private void WriteBackups(ITarget target, ISource result)
+    private void WriteBackups(ITarget target, IEnumerable<string> result)
     {
         var targetDirectory = target.GetTargetDirectory();
-
-        var files = result.GetFiles().Select(f => new BackupFile
+        
+        var files = result.Select(f => new BackupFile
         {
-            Path = Path.Join(targetDirectory, Path.GetFileName(f.Path))
+            Path = Path.Join(targetDirectory, Path.GetFileName(f))
         });
-
+        
         var backup = new Backup
         {
             Date = DateTime.UtcNow,
             Name = _globalOptions.Name,
             Files = files.ToList()
         };
-
+        
         _backupRepository.AddBackup(backup);
     }
     
@@ -68,25 +118,32 @@ public class BackupManager
         var actions = _factory.GetActions().ToArray();
 
         source.Prepare();
+
         try
         {
-            var result = actions.Length > 0
-                ? actions
-                    .Skip(1)
-                    .Aggregate(actions[0].Apply(source, cancellationToken),
-                        (src, action) => ApplyAction(src, action, cancellationToken))
-                : source;
-            try
+            using var context = new BackupActionContext(source);
+            
+            foreach (var action in actions)
             {
-                target.Apply(result, cancellationToken);
+                action.Apply(context, cancellationToken);
+            }
 
-                WriteBackups(target, result);
-                await _retentionManager.PerformCleanupAsync(cancellationToken);
-            }
-            finally
+            IEnumerable<string> result;
+            if (context.TryGetStreamSource(out var streamSource))
             {
-                result.Cleanup();
+                result = target.Apply(streamSource, cancellationToken);
             }
+            else if (context.TryGetFileListSource(out var fileListSource))
+            {
+                result = target.Apply(fileListSource, cancellationToken);
+            }
+            else
+            {
+                throw new Exception("BUG: Unknown source type");
+            }
+
+            WriteBackups(target, result);
+            await _retentionManager.PerformCleanupAsync(cancellationToken);
         }
         finally
         {

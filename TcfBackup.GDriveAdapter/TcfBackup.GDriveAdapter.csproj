@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <RootNamespace>TcfBackup</RootNamespace>
         <PublishTrimmed>true</PublishTrimmed>
         <TrimMode>link</TrimMode>
@@ -12,9 +12,9 @@
         <Platforms>x64;arm64</Platforms>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-
+    
     <ItemGroup>
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.57.0.2746" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.60.0.2986" />
     </ItemGroup>
 
     <ItemGroup>

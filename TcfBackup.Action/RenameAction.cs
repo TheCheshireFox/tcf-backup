@@ -72,11 +72,12 @@ internal static unsafe class LibC
 
 public class RenameAction : IAction
 {
-    private static readonly Dictionary<string, Func<string, string?, string>> s_templateReplacers = new()
+    private static readonly Dictionary<string, Func<string, string?, string>> s_templatePlaceholders = new()
     {
-        { "FN", FormatFilenameWithoutExt },
-        { "FE", FormatExtension },
-        { "D", FormatDate }
+        { "name", (name, _) => name },
+        { "stem", FormatFilenameWithoutExt },
+        { "ext", FormatExtension },
+        { "date", FormatDate }
     };
 
     private readonly ILogger _logger;
@@ -154,7 +155,7 @@ public class RenameAction : IAction
                 throw new FormatException($"No placeholder name in {param}");
             }
 
-            replacements.Add((index, closeIndex - index, s_templateReplacers[placeholder](filename, format)));
+            replacements.Add((index, closeIndex - index, s_templatePlaceholders[placeholder](filename, format)));
         }
 
         var sb = new StringBuilder();
@@ -180,18 +181,10 @@ public class RenameAction : IAction
         return result;
     }
 
-    public RenameAction(ILogger logger, IFileSystem fs, string template, bool overwrite)
-    {
-        _logger = logger.ForContextShort<RenameAction>();
-        _fs = fs;
-        _template = template;
-        _overwrite = overwrite;
-    }
-
-    public ISource Apply(ISource source, CancellationToken cancellationToken)
+    private void Apply(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         _logger.Information("Renaming files...");
-
+        
         var targetDir = _fs.Path.GetTempDirectoryName();
         try
         {
@@ -210,8 +203,9 @@ public class RenameAction : IAction
                 src.Move(dst, _overwrite);
             }
 
+            actionContext.SetResult(FilesListSource.CreateMutable(_fs, targetDir));
+            
             _logger.Information("Complete");
-            return FilesListSource.CreateMutable(_fs, targetDir);
         }
         catch (Exception)
         {
@@ -226,5 +220,34 @@ public class RenameAction : IAction
 
             throw;
         }
+    }
+
+    private void Apply(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    {
+        _logger.Information("Renaming stream...");
+
+        var oldName = source.Name;
+        source.Name = Format(_template, oldName);
+        
+        _logger.Information("{Src} -> {Dst}...", oldName, source.Name);
+        
+        actionContext.SetResult(source);
+    }
+    
+    public RenameAction(ILogger logger, IFileSystem fs, string template, bool overwrite)
+    {
+        _logger = logger.ForContextShort<RenameAction>();
+        _fs = fs;
+        _template = template;
+        _overwrite = overwrite;
+    }
+
+    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
+    {
+        ActionContextExecutor
+            .For(actionContext)
+            .ApplyFileListSource(Apply)
+            .ApplyStreamSource(Apply)
+            .Execute(cancellationToken);
     }
 }

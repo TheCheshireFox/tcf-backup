@@ -1,8 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Threading;
 using CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +9,6 @@ using Serilog;
 using Serilog.Events;
 using TcfBackup.BackupDatabase;
 using TcfBackup.CmdlineOptions;
-using TcfBackup.Compressor;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
 using TcfBackup.Extensions.Configuration;
@@ -60,7 +57,7 @@ public static class Program
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled inside configuration.Get")]
     private static GlobalOptions BindGlobalOptions(IConfiguration configuration, string name)
     {
-        var opts = configuration.Get<GlobalOptions>();
+        var opts = configuration.Get<GlobalOptions>() ?? new GlobalOptions();
         opts.Name = name;
 
         return opts;
@@ -98,23 +95,22 @@ public static class Program
             .AddSingletonFromFactory<FilesystemFactory, IFileSystem>()
             .AddSingleton<IBtrfsManager, BtrfsManager>()
             .AddSingleton<ILxdManager, LxdManager>()
-            .AddSingleton<ICompressionManager, TarCompressionManager>()
+            .AddSingleton<ICompressionManager, CompressionManager>()
             .AddSingleton<IGDriveAdapter, GDriveAdapter>()
-            .AddSingleton<ICompressorStreamFactory, CompressorStreamFactory>()
             .AddSingleton<IConfiguration>(config)
             .AddSingleton<IFactory, BackupConfigFactory>()
             .AddSingleton<IBackupRepository, BackupRepository>(sp => new BackupRepository(sp.GetRequiredService<IFileSystem>(), AppEnvironment.TcfDatabaseDirectory))
             .AddSingleton<IBackupCleanerFactory, BackupCleanerFactory>()
             .AddSingleton<IRetentionManager, RetentionManager>();
     }
-    
+
     private static void PerformBackup(GenericOptions opts, string configurationFile)
     {
         var di = CreateServiceCollection(opts, configurationFile);
         using var dp = di.BuildServiceProvider();
 
         AppEnvironment.Initialize(dp.GetService<IFileSystem>()!);
-
+        
         var manager = dp.CreateService<BackupManager>();
         var interruptionHandler = new InterruptionHandler();
 

@@ -1,25 +1,22 @@
-using BZip2Options = TcfBackup.Compressor.ZlibCompatibleCompressor.BZip2.BZip2Options;
-using GZipOptions = TcfBackup.Compressor.ZlibCompatibleCompressor.GZip.GZipOptions;
-using XzOptions = TcfBackup.Compressor.ZlibCompatibleCompressor.Lzma.XzOptions;
+using System;
+using TcfBackup.LibArchive.Options;
+using TcfBackup.LibArchive.Tar;
 
 namespace TcfBackup.Factory;
 
 public static class TarCompressOptionsMapper
 {
-    public static GZipOptions Map(TcfBackup.Configuration.Action.GZipOptions? opts) => new()
+    public static TarOptions Map(TcfBackup.Configuration.Action.TarOptions? opts) => new()
     {
-        Level = opts?.Level ?? 6,
+        ChangeDir = opts?.ChangeDir
     };
-    
-    public static BZip2Options Map(TcfBackup.Configuration.Action.BZip2Options? opts) => new()
+
+    public static OptionsBase Map<TOptions>(TOptions? opts) => opts switch
     {
-        
-    };
-    
-    public static XzOptions Map(TcfBackup.Configuration.Action.XzOptions? opts) => new()
-    {
-        Level = opts?.Level ?? 6,
-        Threads = opts?.Threads,
-        BlockSize = opts?.BlockSize ?? 0
+        TcfBackup.Configuration.Action.GZipOptions gZipOptions => new GZipOptions(gZipOptions.Level),
+        TcfBackup.Configuration.Action.BZip2Options bZip2Options => new BZip2Options(bZip2Options.Level),
+        TcfBackup.Configuration.Action.XzOptions xzOptions => new XzOptions(xzOptions.Level, (int)(xzOptions.Threads ?? 0)),
+        null => throw new Exception("BUG: Null option passed to mapper"),
+        _ => throw new Exception($"BUG: Unknown option {opts.GetType()}")
     };
 }

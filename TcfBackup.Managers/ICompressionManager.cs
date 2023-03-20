@@ -2,11 +2,9 @@ namespace TcfBackup.Managers;
 
 public interface ICompressionManager : IManager
 {
-    string FileExtension { get; }
+    CompressAlgorithm CompressAlgorithm { get; }
     
-    void Compress(string archive,
+    void Compress(Stream archive,
         IEnumerable<string> files,
-        string? changeDir = null,
-        bool followSymlinks = false,
         CancellationToken cancellationToken = default);
 }

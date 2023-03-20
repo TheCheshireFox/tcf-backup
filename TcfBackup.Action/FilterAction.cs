@@ -30,9 +30,14 @@ public class FilterAction : IAction
         _followSymlinks = followSymlinks;
     }
 
-    public ISource Apply(ISource source, CancellationToken cancellationToken)
+    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
     {
-        var files = source.GetFiles(_followSymlinks);
+        if (!actionContext.TryGetFileListSource(out var source))
+        {
+            throw new Exception("Filter can be applied to file list only");
+        }
+        
+        var files = source.GetFiles();
 
         files = (_includeRegex, _excludeRegex) switch
         {
@@ -42,6 +47,6 @@ public class FilterAction : IAction
             (not null, not null) => files.AsParallel().WithCancellation(cancellationToken).Where(file => !_excludeRegex.IsMatch(file.Path) || _includeRegex.IsMatch(file.Path))
         };
 
-        return new FilesListSource(_fs, files);
+        actionContext.SetResult(new FilesListSource(_fs, files));
     }
 }

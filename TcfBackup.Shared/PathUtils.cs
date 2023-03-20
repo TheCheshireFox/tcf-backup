@@ -2,13 +2,19 @@ using System.Text.RegularExpressions;
 
 namespace TcfBackup.Shared;
 
-public static class PathUtils
+public static partial class PathUtils
 {
+    [GeneratedRegex(".*(\\.tar\\.[^\\.]+$)")]
+    private static partial Regex TarExtRe();
+    
+    [GeneratedRegex(@".+(\.[^\.]+$)")]
+    private static partial Regex AllExtRe();
+    
     // Order by priority
     private static readonly List<Regex> s_extRegexes = new()
     {
-        new Regex(@".*(\.tar\.[^\.]+$)"),
-        new Regex(@".+(\.[^\.]+$)")
+        TarExtRe(),
+        AllExtRe()
     };
 
     public static string GetFullExtension(string path)

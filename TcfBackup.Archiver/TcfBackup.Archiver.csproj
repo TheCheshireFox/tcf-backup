@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release</Configurations>
@@ -17,8 +17,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.Compressor\TcfBackup.Compressor.csproj" />
-      <ProjectReference Include="..\TcfBackup.Native\TcfBackup.Native.csproj" />
+      <ProjectReference Include="..\TcfBackup.LibArchive\TcfBackup.LibArchive.csproj" />
     </ItemGroup>
 
 </Project>

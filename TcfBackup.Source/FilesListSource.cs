@@ -1,9 +1,8 @@
 using TcfBackup.Filesystem;
-using IFile = TcfBackup.Filesystem.IFile;
 
 namespace TcfBackup.Source;
 
-public class FilesListSource : ISource, IDisposable
+public class FilesListSource : IFileListSource, IDisposable
 {
     private readonly IFileSystem _fs;
     private readonly List<IFile> _files;
@@ -16,9 +15,6 @@ public class FilesListSource : ISource, IDisposable
         _parentDir = parentDir;
     }
 
-    public static FilesListSource CreateMutable(IFileSystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new MutableFile(fs, f)));
-    public static FilesListSource CreateImmutable(IFileSystem fs, IEnumerable<string> files) => new(fs, files.Select(f => (IFile)new ImmutableFile(fs, f)));
-
     public static FilesListSource CreateMutable(IFileSystem fs, string dir)
     {
         var files = fs.Directory.EnumerateFiles(dir, "*", new EnumerationOptions()
@@ -27,9 +23,14 @@ public class FilesListSource : ISource, IDisposable
             RecurseSubdirectories = true,
             ReturnSpecialDirectories = false
         });
-        return new(fs, files.Select(f => (IFile)new MutableFile(fs, f)), dir);
+        return new FilesListSource(fs, files.Select(f => (IFile)new MutableFile(fs, f)), dir);
     }
 
+    public static FilesListSource CreateImmutable(IFileSystem fs, IEnumerable<string> files)
+    {
+        return new FilesListSource(fs, files.Select(f => new ImmutableFile(fs, f)));
+    }
+    
     public IEnumerable<IFile> GetFiles() => _files;
 
     public void Prepare()

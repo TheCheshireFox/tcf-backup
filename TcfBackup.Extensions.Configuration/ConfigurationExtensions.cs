@@ -36,7 +36,7 @@ public static class ConfigurationExtensions
             throw new KeyNotFoundException();
         }
 
-        return configuration.Get(type);
+        return configuration.Get(type) ?? throw new KeyNotFoundException(type.Name);
     }
 
     public static IConfigurationSection GetSection(this IConfiguration configuration, string name, StringComparison nameComparison)

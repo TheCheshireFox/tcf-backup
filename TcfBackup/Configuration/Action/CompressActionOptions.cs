@@ -1,5 +1,3 @@
-using System;
-
 namespace TcfBackup.Configuration.Action;
 
 public enum CompressEngine
