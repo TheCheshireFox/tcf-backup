@@ -5,6 +5,42 @@ using TcfBackup.Shared;
 
 namespace TcfBackup.Managers;
 
+// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented
+class PositionWriterStreamWrapper : Stream
+{
+    private readonly Stream _writeStream;
+    
+    private long _virtualPosition;
+    private long _virtualLength;
+
+    public PositionWriterStreamWrapper(Stream writeStream)
+    {
+        _writeStream = writeStream;
+        if (!_writeStream.CanWrite)
+        {
+            throw new NotSupportedException("Wrapper works only with CanWrite streams");
+        }
+    }
+
+    public override void Close() => _writeStream.Close();
+    public override void Flush() => _writeStream.Flush();
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        _writeStream.Write(buffer, offset, count);
+        _virtualLength += count;
+        _virtualPosition += count;
+    }
+
+    public override bool CanRead => false;
+    public override bool CanSeek => false;
+    public override bool CanWrite => true;
+    public override long Length => _virtualLength;
+    public override long Position { get => _virtualPosition; set => throw new NotSupportedException(); }
+}
+
 public class GpgEncryptionManager : IEncryptionManager
 {
     private record GpgContext(Context Context, Key Key) : IDisposable
@@ -105,9 +141,9 @@ public class GpgEncryptionManager : IEncryptionManager
         using var gpgContext = PrepareContext();
         
         using var srcStream = new GpgmeStreamData(src);
-        using var dstStream = new GpgmeStreamData(dst);
+        using var dstStream = new GpgmeStreamData(new PositionWriterStreamWrapper(dst));
 
-        gpgContext.Context.Armor = true;
+        gpgContext.Context.Armor = false;
 
         // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());

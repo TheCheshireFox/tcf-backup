@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Mono.Unix;
 using TcfBackup.LibArchive.Options;
@@ -26,13 +27,13 @@ public abstract class TarLibArchiveBase : LibArchiveWriterBase
         return path;
     }
 
-    private void SetPathName(nint entry, string path)
+    private static void SetPathName(nint entry, string path)
     {
         Span<byte> pathBytes = stackalloc byte[4096];
         
         Unsafe.InitBlock(ref pathBytes.GetPinnableReference(), 0, (uint)pathBytes.Length);
         Encoding.UTF8.GetBytes(path, pathBytes);
-        LibArchiveNativeWrapper.archive_entry_set_pathname(entry, ref pathBytes.GetPinnableReference());
+        LibArchiveNativeWrapper.archive_entry_set_pathname_utf8(entry, ref pathBytes.GetPinnableReference());
     }
     
     protected TarLibArchiveBase(ILibArchiveInitializer initializer, TarOptions tarOptions, OptionsBase options)
@@ -51,7 +52,6 @@ public abstract class TarLibArchiveBase : LibArchiveWriterBase
         if (relPath != path)
         {
             SetPathName(entry, relPath);
-            using (var f = new StreamWriter("/tmp/tcf_rel_files", true)) f.WriteLine(relPath);
         }
 
         return new UnixSymbolicLinkInfo(path).FileType switch

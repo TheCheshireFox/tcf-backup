@@ -12,16 +12,26 @@ public class AsyncFeedStream : Stream
         {
             return;
         }
-        
-        _cts.Cancel();
-        _stream.Close();
+
         throw _feedTask.Exception ?? new Exception("Subsequent stream task failed");
     }
     
-    public AsyncFeedStream(Func<Stream, CancellationToken, Task> feedInitializer, int bufferSize)
+    public AsyncFeedStream(Func<Stream, CancellationToken, Task> feedInitializer, int bufferSize, CancellationToken cancellationToken)
     {
+        var token = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken).Token;
+        
         _stream = new RingBufferStream(bufferSize);
-        _feedTask = feedInitializer(_stream, _cts.Token);
+        _feedTask = feedInitializer(_stream, token).ContinueWith(t =>
+        {
+            if (t.IsFaulted)
+            {
+                _cts.Cancel();
+            }
+            
+            _stream.Close();
+            
+            return t;
+        });
     }
     
     public override int Read(byte[] buffer, int offset, int count)

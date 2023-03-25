@@ -45,7 +45,7 @@ public class EncryptAction : IAction
         
         _logger.Information("Start encryption");
 
-        var targetDir = _filesystem.Path.GetTempDirectoryName();
+        var targetDir = _filesystem.GetTempPath();
 
         try
         {
@@ -79,7 +79,7 @@ public class EncryptAction : IAction
 
     private void Apply(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
-        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamEncryption(source.GetStream(), dst, ct), 1024 * 1024);
+        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamEncryption(source.GetStream(), dst, ct), 1024 * 1024, cancellationToken);
         actionContext.SetResult(new StreamSource(asyncStream, source.Name));
     }
     

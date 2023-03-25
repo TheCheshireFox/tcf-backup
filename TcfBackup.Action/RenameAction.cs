@@ -185,7 +185,7 @@ public class RenameAction : IAction
     {
         _logger.Information("Renaming files...");
         
-        var targetDir = _fs.Path.GetTempDirectoryName();
+        var targetDir = _fs.GetTempPath();
         try
         {
             var renames = source.GetFiles()

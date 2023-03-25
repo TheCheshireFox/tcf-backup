@@ -155,7 +155,7 @@ public class GDriveAdapter : IGDriveAdapter
     public GDriveAdapter(ILogger logger, IFileSystem fs)
     {
         _logger = logger.ForContextShort<GDriveAdapter>();
-        fs.Directory.CreateDirectory(TokensDirectory);
+        fs.Directory.Create(TokensDirectory);
     }
 
     public void Authorize()

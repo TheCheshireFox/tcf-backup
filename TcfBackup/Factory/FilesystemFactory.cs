@@ -19,5 +19,5 @@ public class FilesystemFactory : IServiceCollectionFactory<IFileSystem>
         }
     }
 
-    public IFileSystem Create() => new FileSystem(new System.IO.Abstractions.FileSystem(), _workingDir);
+    public IFileSystem Create() => new FileSystem(_workingDir);
 }

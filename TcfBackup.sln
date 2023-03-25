@@ -30,6 +30,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.BackupRepository"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.LibArchive", "TcfBackup.LibArchive\TcfBackup.LibArchive.csproj", "{29D51593-52B3-4E51-8664-ADC7E8462D1B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.Native", "TcfBackup.Native\TcfBackup.Native.csproj", "{C35329D0-07FF-47F0-A745-815714181BF9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -96,5 +98,9 @@ Global
 		{29D51593-52B3-4E51-8664-ADC7E8462D1B}.Debug|x64.Build.0 = Debug|Any CPU
 		{29D51593-52B3-4E51-8664-ADC7E8462D1B}.Release|x64.ActiveCfg = Release|Any CPU
 		{29D51593-52B3-4E51-8664-ADC7E8462D1B}.Release|x64.Build.0 = Release|Any CPU
+		{C35329D0-07FF-47F0-A745-815714181BF9}.Debug|x64.ActiveCfg = Debug|x64
+		{C35329D0-07FF-47F0-A745-815714181BF9}.Debug|x64.Build.0 = Debug|x64
+		{C35329D0-07FF-47F0-A745-815714181BF9}.Release|x64.ActiveCfg = Release|x64
+		{C35329D0-07FF-47F0-A745-815714181BF9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

@@ -21,7 +21,7 @@ public class DirTarget : ITarget
         _filesystem = filesystem;
         _overwrite = overwrite;
         
-        _filesystem.Directory.CreateDirectory(Directory = dir);
+        _filesystem.Directory.Create(Directory = dir);
         _logger.Information("Target directory {Dir}...", Directory);
     }
     
@@ -50,7 +50,7 @@ public class DirTarget : ITarget
         
         var dst = Path.Combine(Directory, source.Name);
         _logger.Information("Writing {Dst}...", dst);
-
+        
         using var fileStream = _filesystem.File.Open(dst, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
         source.GetStream().CopyToAsync(fileStream, 1024 * 1024, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 

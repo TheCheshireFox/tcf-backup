@@ -11,8 +11,8 @@ public class BackupRepository : IBackupRepository
 
     public BackupRepository(IFileSystem fs, string directory)
     {
-        fs.Directory.CreateDirectory(directory);
-        _dbPath = fs.Path.Combine(directory, DatabaseFileName);
+        fs.Directory.Create(directory);
+        _dbPath = Path.Combine(directory, DatabaseFileName);
     }
     
     public IEnumerable<Backup> GetBackups()

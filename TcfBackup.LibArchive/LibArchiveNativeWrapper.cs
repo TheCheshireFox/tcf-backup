@@ -38,8 +38,10 @@ public static class LibArchiveNativeWrapper
         => ThrowIfError(LibArchiveNative.archive_read_disk_new(), "Unable to create disk reader");
     public static void archive_entry_set_pathname(nint archiveEntry, ref byte pathBytes)
         => LibArchiveNative.archive_entry_set_pathname(archiveEntry, ref pathBytes);
-    public static void archive_entry_set_pathname_utf8(nint archiveEntry, string path)
-        => LibArchiveNative.archive_entry_set_pathname_utf8(archiveEntry, path);
+    public static void archive_entry_set_pathname_utf8(nint archiveEntry, ref byte pathBytes)
+        => LibArchiveNative.archive_entry_set_pathname_utf8(archiveEntry, ref pathBytes);
+    public static void archive_entry_set_pathname_utf8(nint archiveEntry, nint pathBytes)
+        => LibArchiveNative.archive_entry_set_pathname_utf8(archiveEntry, pathBytes);
     public static RetCode archive_write_add_filter(nint archive, FilterCode filterCode)
         => ThrowIfError(archive, LibArchiveNative.archive_write_add_filter(archive, filterCode), "Unable to add filter");
     public static RetCode archive_write_set_format(nint archive, ArchiveFormat archiveFormat)

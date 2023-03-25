@@ -30,8 +30,6 @@ public abstract class LibArchiveWriterBase : IDisposable
             {
                 throw;
             }
-
-            Console.WriteLine($"*** {exc.Message} ***");
             // It's fine, warnings are ok here
         }
     }

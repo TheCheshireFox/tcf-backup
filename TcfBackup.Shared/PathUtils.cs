@@ -4,12 +4,19 @@ namespace TcfBackup.Shared;
 
 public static partial class PathUtils
 {
+    #if USE_GENERATED_REGEX
+    
     [GeneratedRegex(".*(\\.tar\\.[^\\.]+$)")]
     private static partial Regex TarExtRe();
     
     [GeneratedRegex(@".+(\.[^\.]+$)")]
     private static partial Regex AllExtRe();
+    #else
+    private static Regex TarExtRe() => new(@".*(\.tar\.[^\.]+$)", RegexOptions.Compiled);
     
+    private static Regex AllExtRe() => new(@".+(\.[^\.]+$)", RegexOptions.Compiled);
+    #endif
+
     // Order by priority
     private static readonly List<Regex> s_extRegexes = new()
     {

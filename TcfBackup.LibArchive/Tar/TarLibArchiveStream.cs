@@ -11,7 +11,7 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
     private readonly ArchiveWriteCallback _onWrite;
     private readonly ArchiveCloseCallback _onClose;
     private readonly ArchiveFreeCallback _onFree;
-
+    
     private GCHandle _onOpenHandle;
     private GCHandle _onWriteHandle;
     private GCHandle _onCloseHandle;
@@ -20,7 +20,7 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
     public TarStreamLibArchiveInitializer(Stream stream)
     {
         _stream = stream;
-
+        
         _onOpenHandle = GCHandle.Alloc(_onOpen = OnOpen);
         _onWriteHandle = GCHandle.Alloc(_onWrite = OnWrite);
         _onCloseHandle = GCHandle.Alloc(_onClose = OnClose);
@@ -34,27 +34,17 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
     
     private unsafe long OnWrite(nint archive, nint clientData, nint buffer, long length)
     {
-        var totalLength = length;
-
+        var toWrite = length > int.MaxValue ? int.MaxValue : (int)length;
         try
         {
-            while (length >= int.MaxValue)
-            {
-                _stream.Write(new Span<byte>(buffer.ToPointer(), int.MaxValue));
-
-                buffer += int.MaxValue;
-                length -= int.MaxValue;
-            }
-
-            _stream.Write(new Span<byte>(buffer.ToPointer(), (int)length));
+            _stream.Write(new Span<byte>(buffer.ToPointer(), toWrite));
+            return toWrite;
         }
         catch (Exception e)
         {
             LibArchiveNativeWrapper.archive_set_error(archive, RetCode.Failed, e.Message);
             return -1;
         }
-        
-        return totalLength;
     }
     
     private int OnClose(nint archive, nint clientData)

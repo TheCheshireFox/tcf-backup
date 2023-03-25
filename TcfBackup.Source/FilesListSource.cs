@@ -17,12 +17,7 @@ public class FilesListSource : IFileListSource, IDisposable
 
     public static FilesListSource CreateMutable(IFileSystem fs, string dir)
     {
-        var files = fs.Directory.EnumerateFiles(dir, "*", new EnumerationOptions()
-        {
-            IgnoreInaccessible = false,
-            RecurseSubdirectories = true,
-            ReturnSpecialDirectories = false
-        });
+        var files = fs.Directory.GetFiles(dir);
         return new FilesListSource(fs, files.Select(f => (IFile)new MutableFile(fs, f)), dir);
     }
 

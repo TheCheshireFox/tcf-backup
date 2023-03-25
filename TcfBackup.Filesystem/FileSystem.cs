@@ -1,39 +1,98 @@
-using System.IO.Abstractions;
+using System.IO.Enumeration;
 
 namespace TcfBackup.Filesystem;
 
-public class FileSystem : IFileSystem
+public class FilesystemFile : IFilesystemFile
 {
-    public FileSystem(System.IO.Abstractions.IFileSystem filesystem, string? tempDirectory = null)
+    public bool Exists(string path) => File.Exists(path);
+    public void Copy(string source, string destination, bool overwrite) => File.Copy(source, destination, overwrite);
+
+    public void Move(string source, string destination, bool overwrite) => File.Move(source, destination, overwrite);
+
+    public void Delete(string path) => File.Delete(path);
+
+    public Stream Open(string path, FileMode fileMode, FileAccess fileAccess) => File.Open(path, fileMode, fileAccess);
+
+    public Stream Open(string path, FileMode fileMode, FileAccess fileAccess, FileShare fileShare) => File.Open(path, fileMode, fileAccess, fileShare);
+
+    public Stream OpenRead(string path) => File.OpenRead(path);
+}
+
+public class FilesystemDirectory : IFilesystemDirectory
+{
+    private static IEnumerable<string> GetMountPoints()
     {
-        DriveInfo = filesystem.DriveInfo;
-        DirectoryInfo = filesystem.DirectoryInfo;
-        FileInfo = filesystem.FileInfo;
-        Path = !string.IsNullOrEmpty(tempDirectory)
-            ? new SpecificTempDirectoryPathWrapper(filesystem, tempDirectory)
-            : filesystem.Path;
-        File = filesystem.File;
-        Directory = new OptimizedDirectory(filesystem, filesystem.Directory);
-        FileStream = filesystem.FileStream;
-        FileSystemWatcher = filesystem.FileSystemWatcher;
+        return File.ReadLines("/proc/mounts")
+            .Select(line => line.Split(' ', 3, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .Where(t => t.Length >= 2)
+            .Select(t => t[1]);
     }
     
-    public System.IO.Abstractions.IFile File { get; }
-    public IOptimizedDirectory Directory { get; }
-    public IFileInfoFactory FileInfo { get; }
-    public IFileStreamFactory FileStream { get; }
-    public IPath Path { get; }
-    public IDirectoryInfoFactory DirectoryInfo { get; }
-    public IDriveInfoFactory DriveInfo { get; }
-    public IFileSystemWatcherFactory FileSystemWatcher { get; }
+    public bool Exists(string path) => Directory.Exists(path);
 
-    public void Dispose()
+    public void Create(string path) => Directory.CreateDirectory(path);
+
+    public void Delete(string path, bool recursive = true) => Directory.Delete(path, recursive);
+
+    public IEnumerable<string> GetFiles(string path, bool recursive = true, bool sameFilesystem = true, bool skipAccessDenied = false, bool followSymlinks = false)
     {
-        if (Path is IDisposable disposablePath)
+        var ignoreMountPoints = GetMountPoints()
+            .OrderByDescending(m => m.Count(c => c == Path.DirectorySeparatorChar))
+            .Where(m => m.StartsWith(path))
+            .ToList();
+        
+        bool ShouldIgnoreMountPoint(ref FileSystemEntry fse)
         {
-            disposablePath.Dispose();
+            var fsePath = fse.ToFullPath();
+            return ignoreMountPoints.Any(mp => string.Equals(mp, fsePath) || fsePath.Contains(mp));
         }
         
-        GC.SuppressFinalize(this);
+        return new FileSystemEnumerable<string>(path, (ref FileSystemEntry entry) => entry.ToFullPath(), new EnumerationOptions
+        {
+            RecurseSubdirectories = recursive,
+            AttributesToSkip = FileAttributes.Device,
+            IgnoreInaccessible = skipAccessDenied,
+            ReturnSpecialDirectories = false
+        })
+        {
+            ShouldIncludePredicate = (ref FileSystemEntry fse) => !fse.IsDirectory,
+            ShouldRecursePredicate = (ref FileSystemEntry fse) => recursive && !ShouldIgnoreMountPoint(ref fse) && (followSymlinks || !fse.Attributes.HasFlag(FileAttributes.ReparsePoint))
+        };
+    }
+}
+
+public class FileSystem : IFileSystem
+{
+    private readonly string? _tmpDirectory;
+
+    public FileSystem(string? tmpDirectory)
+    {
+        _tmpDirectory = tmpDirectory;
+    }
+
+    public IFilesystemFile File { get; } = new FilesystemFile();
+    public IFilesystemDirectory Directory { get; } = new FilesystemDirectory();
+    public string GetTempPath() => _tmpDirectory ?? Path.GetTempPath();
+    public string GetTempFileName()
+    {
+        if (_tmpDirectory == null)
+        {
+            return Path.GetTempFileName();
+        }
+        
+        while (true)
+        {
+            var fileName = $"tmp{Random.Shared.Next():D10}.tmp";
+            var path = Path.Combine(_tmpDirectory, fileName);
+            try
+            {
+                using var file = File.Open(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+                return path;
+            }
+            catch (Exception)
+            {
+                // NOP
+            }
+        }
     }
 }

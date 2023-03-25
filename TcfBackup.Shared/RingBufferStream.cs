@@ -38,10 +38,14 @@ public class RingBufferStream : Stream
         {
             buffer = buffer[..(_buffer.Length - _length)];
         }
-
-        if (_pos + _length + buffer.Length < _buffer.Length)
+        
+        if (_pos + _length + buffer.Length <= _buffer.Length)
         {
             buffer.CopyTo(new Span<byte>(_buffer, _pos + _length, buffer.Length));
+        }
+        else if (_pos + _length > _buffer.Length)
+        {
+            buffer.CopyTo(new Span<byte>(_buffer, _pos + _length - _buffer.Length, buffer.Length));
         }
         else
         {
@@ -65,21 +69,24 @@ public class RingBufferStream : Stream
             buffer = buffer[.._length];
         }
 
-        if (_pos + _length < _buffer.Length)
+        var start = _pos;
+        var length = Math.Min(buffer.Length, _length);
+
+        if (start + length <= _buffer.Length)
         {
-            new Span<byte>(_buffer, _pos, buffer.Length).CopyTo(buffer);
+            new Span<byte>(_buffer, start, length).CopyTo(buffer);
         }
         else
         {
-            var part1 = _buffer[_pos..];
-            var part2 = _buffer[..(buffer.Length - part1.Length)];
+            var part1 = _buffer[start..];
+            var part2 = _buffer[..(length - part1.Length)];
             
             part1.CopyTo(buffer);
             part2.CopyTo(buffer[part1.Length..]);
         }
 
-        _length -= buffer.Length;
-        _pos += buffer.Length;
+        _length -= length;
+        _pos += length;
 
         if (_length == 0)
         {
@@ -92,7 +99,7 @@ public class RingBufferStream : Stream
 
         _spaceEvt.Set();
         
-        return buffer.Length;
+        return length;
     }
     
     public RingBufferStream(int bufferSize)

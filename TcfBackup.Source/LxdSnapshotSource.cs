@@ -47,12 +47,12 @@ public class LxdSnapshotSource : ISource
     }
 
     public IEnumerable<IFile> GetFiles() => _filesystem.Directory
-        .EnumerateFiles(_backupDirectory ?? throw new InvalidOperationException("Unable to get backup archives: No backup was performed"))
+        .GetFiles(_backupDirectory ?? throw new InvalidOperationException("Unable to get backup archives: No backup was performed"))
         .Select(f => (IFile)new MutableFile(_filesystem, f));
 
     public void Prepare()
     {
-        _backupDirectory = _filesystem.Path.GetTempDirectoryName();
+        _backupDirectory = _filesystem.GetTempPath();
 
         try
         {
@@ -74,11 +74,16 @@ public class LxdSnapshotSource : ISource
 
     public void Cleanup()
     {
+        if (_backupDirectory == null)
+        {
+            return;
+        }
+        
         try
         {
             if (_filesystem.Directory.Exists(_backupDirectory))
             {
-                _filesystem.Directory.Delete(_backupDirectory!);
+                _filesystem.Directory.Delete(_backupDirectory);
             }
         }
         catch (Exception)

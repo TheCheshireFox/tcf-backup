@@ -12,8 +12,8 @@ public static class AppEnvironment
 
     public static void Initialize(IFileSystem fs)
     {
-        fs.Directory.CreateDirectory(TcfConfigDirectory);
-        fs.Directory.CreateDirectory(TcfPersistentDirectory);
-        fs.Directory.CreateDirectory(TcfDatabaseDirectory);
+        fs.Directory.Create(TcfConfigDirectory);
+        fs.Directory.Create(TcfPersistentDirectory);
+        fs.Directory.Create(TcfDatabaseDirectory);
     }
 }

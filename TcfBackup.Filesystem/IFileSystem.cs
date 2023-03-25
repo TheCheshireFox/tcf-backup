@@ -1,15 +1,31 @@
-using System.IO.Abstractions;
-
 namespace TcfBackup.Filesystem;
 
-public interface IFileSystem : IDisposable
+public interface IFilesystemFile
 {
-    System.IO.Abstractions.IFile File { get; }
-    IOptimizedDirectory Directory { get; }
-    IFileInfoFactory FileInfo { get; }
-    IFileStreamFactory FileStream { get; }
-    IPath Path { get; }
-    IDirectoryInfoFactory DirectoryInfo { get; }
-    IDriveInfoFactory DriveInfo { get; }
-    IFileSystemWatcherFactory FileSystemWatcher { get; }
+    bool Exists(string path);
+    void Copy(string source, string destination, bool overwrite);
+    void Move(string source, string destination, bool overwrite);
+    void Delete(string path);
+    
+    Stream Open(string path, FileMode fileMode, FileAccess fileAccess);
+    Stream Open(string path, FileMode fileMode, FileAccess fileAccess, FileShare fileShare);
+    Stream OpenRead(string path);
+}
+
+public interface IFilesystemDirectory
+{
+    bool Exists(string path);
+    void Create(string path);
+    void Delete(string path, bool recursive = true);
+    
+    IEnumerable<string> GetFiles(string path, bool recursive = true, bool sameFilesystem = true, bool skipAccessDenied = false, bool followSymlinks = false);
+}
+
+public interface IFileSystem
+{
+    IFilesystemFile File { get; }
+    IFilesystemDirectory Directory { get; }
+
+    string GetTempPath();
+    string GetTempFileName();
 }

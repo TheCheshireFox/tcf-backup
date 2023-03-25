@@ -82,7 +82,10 @@ public static class LibArchiveNative
     public static extern void archive_entry_set_pathname(nint archiveEntry, ref byte pathBytes);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_pathname_utf8(nint archiveEntry, string path);
+    public static extern void archive_entry_set_pathname_utf8(nint archiveEntry, ref byte pathBytes);
+    
+    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern void archive_entry_set_pathname_utf8(nint archiveEntry, nint pathBytes);
 
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern RetCode archive_write_add_filter(nint archive, FilterCode filterCode);

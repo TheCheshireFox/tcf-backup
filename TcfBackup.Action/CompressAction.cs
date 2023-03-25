@@ -53,7 +53,7 @@ public class CompressAction : IAction
                 : _archiveName;
         
         var files = source.GetFiles();
-        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamCompression(files.Select(f => f.Path), dst, ct), 1024 * 1024);
+        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamCompression(files.Select(f => f.Path), dst, ct), 1024 * 1024, cancellationToken);
         
         actionContext.SetResult(new StreamSource(asyncStream, archiveName));
     }
