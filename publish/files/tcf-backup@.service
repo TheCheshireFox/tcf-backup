@@ -1,0 +1,4 @@
+[Service]
+Type=simple
+Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp"
+ExecStart=/usr/bin/tcf-backup backup %i
