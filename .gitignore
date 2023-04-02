@@ -7,6 +7,7 @@ publish/
 .idea/
 publish-debug.sh
 TcfBackup.GDriveAdapter/credentials.json
+TcfBackup.GDriveAdapter/credentials.json.base64
 TcfBackup.GDriveAdapter/GDriveClientSecrets.cs
 Compressor/build/*
 Compressor/.vscode/*
