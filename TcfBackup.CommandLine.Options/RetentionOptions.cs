@@ -1,8 +1,7 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 
-namespace TcfBackup.CmdlineOptions;
+namespace TcfBackup.CommandLine.Options;
 
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
 [Verb("retention", HelpText = "Restore managed backups")]

@@ -1,14 +1,13 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 
-namespace TcfBackup.CmdlineOptions;
+namespace TcfBackup.CommandLine.Options;
 
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-[Verb("backup", HelpText = "Perform backups")]
-public class BackupOptions : GenericOptions
+[Verb("restore", HelpText = "Restore managed backups")]
+public class RestoreOptions : GenericOptions
 {
     [Value(0, MetaName = "path", HelpText = "Configuration file", Required = true)]
-    public IEnumerable<string> ConfigurationFiles { get; set; } = null!;
+    public string? ConfigurationFile { get; set; }
 }

@@ -23,9 +23,9 @@ public class EncryptActionTest
         var encryptionManagerMock = new Mock<IEncryptionManager>(MockBehavior.Strict);
         files.ToList().ForEach(f => encryptionManagerMock.Setup(m => m.Encrypt(f.Src, f.Dst, CancellationToken.None)));
 
-        var fsMock = new Mock<IFilesystem>(MockBehavior.Strict);
-        fsMock.Setup(fs => fs.CreateTempDirectory()).Returns("/dev/null/tmp");
-        fsMock.Setup(fs => fs.GetFiles("/dev/null/tmp", false, false, false)).Returns(tmpFiles);
+        var fsMock = new Mock<IFileSystem>(MockBehavior.Strict);
+        fsMock.Setup(fs => fs.GetTempPath()).Returns("/dev/null/tmp");
+        fsMock.Setup(fs => fs.Directory.GetFiles("/dev/null/tmp", false, false, false)).Returns(tmpFiles);
         fsMock.Setup(fs => fs.FileExists(It.IsAny<string?>())).Returns(false);
         fsMock.Setup(fs => fs.Delete("/dev/null/tmp"));
 

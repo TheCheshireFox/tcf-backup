@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using TcfBackup.LibArchive.Options;
 
 namespace TcfBackup.LibArchive.Tar;
@@ -16,6 +18,14 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
     private GCHandle _onWriteHandle;
     private GCHandle _onCloseHandle;
     private GCHandle _onFreeHandle;
+
+    private static unsafe void SetError(nint archive, string message)
+    {
+        fixed (byte* pBytes = Encoding.UTF8.GetBytes(message))
+        {
+            LibArchiveNativeWrapper.archive_set_error(archive, RetCode.Fatal, ref Unsafe.AsRef<byte>(pBytes));
+        }
+    }
     
     public TarStreamLibArchiveInitializer(Stream stream)
     {
@@ -42,7 +52,7 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
         }
         catch (Exception e)
         {
-            LibArchiveNativeWrapper.archive_set_error(archive, RetCode.Failed, e.Message);
+            SetError(archive, e.Message);
             return -1;
         }
     }
@@ -55,7 +65,7 @@ public class TarStreamLibArchiveInitializer : ILibArchiveInitializer
         }
         catch (Exception e)
         {
-            LibArchiveNativeWrapper.archive_set_error(archive, RetCode.Failed, e.Message);
+            SetError(archive, e.Message);
             return -1;
         }
         

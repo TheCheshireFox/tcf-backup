@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using Serilog;
+using Serilog.Events;
 using TcfBackup.Action;
 using TcfBackup.BackupDatabase;
 using TcfBackup.Configuration.Global;
@@ -65,7 +67,7 @@ public class BackupActionContext : IActionContext, IDisposable
         {
             try
             {
-                source.Cleanup();
+                source.Cleanup(CancellationToken.None);
             }
             catch (Exception)
             {
@@ -80,10 +82,25 @@ public class BackupActionContext : IActionContext, IDisposable
 public class BackupManager
 {
     private readonly GlobalOptions _globalOptions;
+    private readonly ILogger _logger;
     private readonly IFactory _factory;
     private readonly IBackupRepository _backupRepository;
     private readonly IRetentionManager _retentionManager;
 
+    private void LogBackup(Backup backup)
+    {
+        if (!_logger.IsEnabled(LogEventLevel.Debug))
+        {
+            return;
+        }
+        
+        _logger.Debug("Writing backup record: {Name} {Date}", backup.Name, backup.Date);
+        foreach (var file in backup.Files)
+        {
+            _logger.Debug("\t{Path}", file.Path);
+        }
+    }
+    
     private void WriteBackups(ITarget target, IEnumerable<string> result)
     {
         var targetDirectory = target.GetTargetDirectory();
@@ -99,13 +116,16 @@ public class BackupManager
             Name = _globalOptions.Name,
             Files = files.ToList()
         };
+
+        LogBackup(backup);
         
         _backupRepository.AddBackup(backup);
     }
     
-    public BackupManager(IOptions<GlobalOptions> globalOptions, IFactory factory, IRetentionManager retentionManager, IBackupRepository backupRepository)
+    public BackupManager(IOptions<GlobalOptions> globalOptions, ILogger logger, IFactory factory, IRetentionManager retentionManager, IBackupRepository backupRepository)
     {
         _globalOptions = globalOptions.Value;
+        _logger = logger;
         _factory = factory;
         _retentionManager = retentionManager;
         _backupRepository = backupRepository;
@@ -117,7 +137,7 @@ public class BackupManager
         var target = _factory.GetTarget();
         var actions = _factory.GetActions().ToArray();
 
-        source.Prepare();
+        source.Prepare(cancellationToken);
 
         try
         {
@@ -125,7 +145,7 @@ public class BackupManager
             
             foreach (var action in actions)
             {
-                action.Apply(context, cancellationToken);
+                await action.ApplyAsync(context, cancellationToken);
             }
 
             IEnumerable<string> result;
@@ -147,7 +167,7 @@ public class BackupManager
         }
         finally
         {
-            source.Cleanup();
+            source.Cleanup(cancellationToken);
         }
     }
     

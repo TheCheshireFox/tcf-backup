@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using CommandLine;
 
-namespace TcfBackup.CmdlineOptions;
+namespace TcfBackup.CommandLine.Options;
 
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
 [Verb("google-auth", HelpText = "Perform google authentication")]

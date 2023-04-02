@@ -43,7 +43,7 @@ public class BtrfsSource : IFileListSource
         .GetFiles(_snapshot ?? _subvolume, recursive: true, sameFilesystem: true, skipAccessDenied: true, followSymlinks)
         .Select(f => (IFile)new ImmutableFile(_filesystem, f));
 
-    public void Prepare()
+    public void Prepare(CancellationToken cancellationToken)
     {
         if (_snapshot == null)
         {
@@ -57,7 +57,7 @@ public class BtrfsSource : IFileListSource
         _logger.Information("Snapshot created");
     }
 
-    public void Cleanup()
+    public void Cleanup(CancellationToken cancellationToken)
     {
         if (_snapshot == null)
         {

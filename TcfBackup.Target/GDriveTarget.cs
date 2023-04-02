@@ -38,7 +38,7 @@ public class GDriveTarget : ITarget
             using var stream = _fs.File.Open(file.Path, FileMode.Open, FileAccess.Read);
 
             var name = Path.GetFileName(file.Path);
-            _gDriveAdapter.UploadFile(stream, name, _directoryId, cancellationToken);
+            _gDriveAdapter.UploadFileAsync(stream, name, _directoryId, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 
             result.Add(_directory != null
                 ? Path.Combine(_directory, name)
@@ -54,7 +54,7 @@ public class GDriveTarget : ITarget
     {
         _logger.Information("Uploading {Path}...", source.Name);
         
-        _gDriveAdapter.UploadFile(source.GetStream(), source.Name, _directoryId, cancellationToken);
+        _gDriveAdapter.UploadFileAsync(source.GetStream(), source.Name, _directoryId, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
         
         _logger.Information("Complete");
 

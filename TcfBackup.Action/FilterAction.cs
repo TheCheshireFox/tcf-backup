@@ -30,7 +30,7 @@ public class FilterAction : IAction
         _followSymlinks = followSymlinks;
     }
 
-    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
+    public Task ApplyAsync(IActionContext actionContext, CancellationToken cancellationToken)
     {
         if (!actionContext.TryGetFileListSource(out var source))
         {
@@ -48,5 +48,7 @@ public class FilterAction : IAction
         };
 
         actionContext.SetResult(new FilesListSource(_fs, files));
+
+        return Task.CompletedTask;
     }
 }

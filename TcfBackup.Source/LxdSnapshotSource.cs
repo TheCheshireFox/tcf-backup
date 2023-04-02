@@ -50,7 +50,7 @@ public class LxdSnapshotSource : ISource
         .GetFiles(_backupDirectory ?? throw new InvalidOperationException("Unable to get backup archives: No backup was performed"))
         .Select(f => (IFile)new MutableFile(_filesystem, f));
 
-    public void Prepare()
+    public void Prepare(CancellationToken cancellationToken)
     {
         _backupDirectory = _filesystem.GetTempPath();
 
@@ -59,20 +59,23 @@ public class LxdSnapshotSource : ISource
             _logger.Information("Preparing snapshots...");
             foreach (var container in _containers)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 _logger.Information("Creating snapshot for container {Container}", container);
 
-                _lxdManager.BackupContainer(container, Path.Combine(_backupDirectory, container + ".tar.gz"));
+                _lxdManager.BackupContainer(container, Path.Combine(_backupDirectory, container + ".tar.gz"), cancellationToken);
 
                 _logger.Information("Snapshot created");
             }
         }
         catch (Exception)
         {
-            Cleanup();
+            Cleanup(cancellationToken);
+            throw;
         }
     }
 
-    public void Cleanup()
+    public void Cleanup(CancellationToken cancellationToken)
     {
         if (_backupDirectory == null)
         {

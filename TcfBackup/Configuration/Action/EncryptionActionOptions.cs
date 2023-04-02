@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TcfBackup.Configuration.Action;
 
 public enum EncryptionEngine
@@ -7,6 +9,7 @@ public enum EncryptionEngine
     Gpg
 }
 
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class EncryptionActionOptions : ActionOptions
 {
     public EncryptionEngine Engine { get; set; }

@@ -2,6 +2,12 @@ using TcfBackup.LibArchive.Options;
 
 namespace TcfBackup.LibArchive;
 
+public enum LogLevel
+{
+    Warning,
+    Error
+}
+
 public interface ILibArchiveInitializer
 {
     void Initialize(nint archive);
@@ -18,6 +24,8 @@ public abstract class LibArchiveWriterBase : IDisposable
     private nint _archive;
     private nint _entry;
 
+    public event Action<LogLevel, string>? OnLog;
+
     private void WriteEntryHeader()
     {
         try
@@ -30,6 +38,8 @@ public abstract class LibArchiveWriterBase : IDisposable
             {
                 throw;
             }
+            
+            OnLog?.Invoke(LogLevel.Warning, exc.Message);
             // It's fine, warnings are ok here
         }
     }
@@ -37,29 +47,44 @@ public abstract class LibArchiveWriterBase : IDisposable
     protected LibArchiveWriterBase(ILibArchiveInitializer initializer, ArchiveFormat archiveFormat, OptionsBase options)
     {
         _initializer = initializer;
-        _archive = LibArchiveNative.archive_write_new();
+        _archive = LibArchiveNativeWrapper.archive_write_new();
         LibArchiveNativeWrapper.archive_write_add_filter(_archive, options.FilterCode);
         LibArchiveNativeWrapper.archive_write_set_format(_archive, archiveFormat);
         LibArchiveNativeWrapper.archive_write_set_options(_archive, options.ToString());
         
         _initializer.Initialize(_archive);
-        _entry = LibArchiveNative.archive_entry_new();
+        _entry = LibArchiveNativeWrapper.archive_entry_new();
     }
 
-    protected abstract bool SetupEntry(nint entry, string path);
+    protected abstract void SetupEntry(nint entry, string path);
     
     public unsafe void AddFile(string path)
     {
         try
         {
-            if (!SetupEntry(_entry, path))
+            SetupEntry(_entry, path);
+
+            switch (LibArchiveNativeWrapper.archive_entry_filetype(_entry))
             {
-                WriteEntryHeader();
-                LibArchiveNativeWrapper.archive_entry_clear(_entry);
-                return;
+                case FileType.AE_IFSOCK:
+                    OnLog?.Invoke(LogLevel.Error, $"{path} Socket not supported");
+                    return;
+                default:
+                    break;
             }
             
             WriteEntryHeader();
+
+            if (LibArchiveNativeWrapper.archive_entry_size_is_set(_entry) == 0)
+            {
+                throw new LibArchiveException($"Size wasn't set for {path}");
+            }
+            
+            if (LibArchiveNativeWrapper.archive_entry_size(_entry) == 0)
+            {
+                LibArchiveNativeWrapper.archive_entry_clear(_entry);
+                return;
+            }
 
             fixed (byte* buffer = _buffer)
             {

@@ -1,4 +1,4 @@
-using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TcfBackup.Retention.BackupCleaners;
@@ -12,20 +12,13 @@ public class GDriveBackupCleaner : IBackupCleaner
         _gDriveAdapter = gDriveAdapter;
     }
 
-    public Task DeleteAsync(string path, bool throwIfNotExisted = false)
+    public async Task DeleteAsync(string path, CancellationToken cancellationToken)
     {
-        try
-        {
-            _gDriveAdapter.DeleteFile(path);
-        }
-        catch (FileNotFoundException)
-        {
-            if (throwIfNotExisted)
-            {
-                throw;
-            }
-        }
-        
-        return Task.CompletedTask;
+        await _gDriveAdapter.DeleteFileAsync(path, cancellationToken);
+    }
+
+    public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken)
+    {
+        return _gDriveAdapter.ExistsAsync(path, cancellationToken);
     }
 }

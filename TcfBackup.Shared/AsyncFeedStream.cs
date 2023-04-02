@@ -6,44 +6,63 @@ public class AsyncFeedStream : Stream
     private readonly CancellationTokenSource _cts = new();
     private readonly RingBufferStream _stream;
 
+    private Exception? _feedTaskException;
+
     private void ThrowOnFailedTask()
     {
-        if (!_feedTask.IsFaulted)
+        if (_feedTaskException == null)
         {
             return;
         }
 
-        throw _feedTask.Exception ?? new Exception("Subsequent stream task failed");
+        throw _feedTaskException;
     }
-    
+
     public AsyncFeedStream(Func<Stream, CancellationToken, Task> feedInitializer, int bufferSize, CancellationToken cancellationToken)
     {
         var token = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken).Token;
-        
+
         _stream = new RingBufferStream(bufferSize);
         _feedTask = feedInitializer(_stream, token).ContinueWith(t =>
         {
             if (t.IsFaulted)
             {
+                _feedTaskException = t.Exception ?? new Exception("Subsequent stream task failed");
                 _cts.Cancel();
             }
-            
+
             _stream.Close();
-            
+
             return t;
         });
     }
-    
+
     public override int Read(byte[] buffer, int offset, int count)
     {
         ThrowOnFailedTask();
-        return _stream.Read(buffer, offset, count);
+
+        var read = _stream.Read(buffer, offset, count);
+        if (read == 0)
+        {
+            ThrowOnFailedTask();
+        }
+
+        return read;
     }
 
     public override void Write(byte[] buffer, int offset, int count)
     {
         ThrowOnFailedTask();
-        _stream.Write(buffer, offset, count);
+
+        try
+        {
+            _stream.Write(buffer, offset, count);
+        }
+        catch (ObjectDisposedException)
+        {
+            ThrowOnFailedTask();
+            throw;
+        }
     }
 
     public override void Flush() => _stream.Flush();
@@ -64,7 +83,7 @@ public class AsyncFeedStream : Stream
         {
             // NOP
         }
-        
+
         base.Close();
     }
 
@@ -72,5 +91,10 @@ public class AsyncFeedStream : Stream
     public override bool CanSeek => false;
     public override bool CanWrite => true;
     public override long Length => _stream.Length;
-    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+    public override long Position
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
 }

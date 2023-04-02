@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
 using Serilog;
@@ -181,19 +182,24 @@ public class RenameAction : IAction
         return result;
     }
 
-    private void Apply(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    private async Task ApplyAsync(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         _logger.Information("Renaming files...");
         
         var targetDir = _fs.GetTempPath();
         try
         {
-            var renames = source.GetFiles()
-                .ToDictionary(f => f,
-                    f => Path.Combine(targetDir, Format(_template, Path.GetFileName(f.Path))));
+            var renames = new ConcurrentDictionary<IFile, string>();
+            await Parallel.ForEachAsync(source.GetFiles(), cancellationToken, (file, _) =>
+            {
+                renames.TryAdd(file, Format(_template, Path.GetFileName(file.Path)));
+                return ValueTask.CompletedTask;
+            });
 
             foreach (var (src, dst) in renames)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 if (src.Path.Equals(dst))
                 {
                     continue;
@@ -211,7 +217,7 @@ public class RenameAction : IAction
         {
             try
             {
-                _fs.Directory.Delete(targetDir, true);
+                _fs.Directory.Delete(targetDir);
             }
             catch (Exception)
             {
@@ -222,7 +228,7 @@ public class RenameAction : IAction
         }
     }
 
-    private void Apply(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    private Task ApplyAsync(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         _logger.Information("Renaming stream...");
 
@@ -232,6 +238,8 @@ public class RenameAction : IAction
         _logger.Information("{Src} -> {Dst}...", oldName, source.Name);
         
         actionContext.SetResult(source);
+
+        return Task.CompletedTask;
     }
     
     public RenameAction(ILogger logger, IFileSystem fs, string template, bool overwrite)
@@ -242,12 +250,12 @@ public class RenameAction : IAction
         _overwrite = overwrite;
     }
 
-    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
+    public Task ApplyAsync(IActionContext actionContext, CancellationToken cancellationToken)
     {
-        ActionContextExecutor
+        return ActionContextExecutor
             .For(actionContext)
-            .ApplyFileListSource(Apply)
-            .ApplyStreamSource(Apply)
-            .Execute(cancellationToken);
+            .ApplyFileListSource(ApplyAsync)
+            .ApplyStreamSource(ApplyAsync)
+            .ExecuteAsync(cancellationToken);
     }
 }

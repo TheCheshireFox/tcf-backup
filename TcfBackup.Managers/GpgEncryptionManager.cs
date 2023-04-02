@@ -5,40 +5,100 @@ using TcfBackup.Shared;
 
 namespace TcfBackup.Managers;
 
-// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented
-class PositionWriterStreamWrapper : Stream
+internal abstract class BaseStreamWrapper : Stream
 {
-    private readonly Stream _writeStream;
-    
+    protected readonly Stream Stream;
+
+    public Exception? LastException { get; protected set; }
+
+    protected BaseStreamWrapper(Stream stream)
+    {
+        Stream = stream;
+    }
+
+    public override void Flush() => Stream.Flush();
+    public override long Seek(long offset, SeekOrigin origin) => Stream.Seek(offset, origin);
+    public override void SetLength(long value) => Stream.SetLength(value);
+
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    public override bool CanSeek => Stream.CanSeek;
+    public override long Length => Stream.Length;
+
+    public override long Position
+    {
+        get => Stream.Position;
+        set => Stream.Position = value;
+    }
+}
+
+// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented and silences exceptions in Write
+internal class WriterStreamWrapper : BaseStreamWrapper
+{
     private long _virtualPosition;
     private long _virtualLength;
 
-    public PositionWriterStreamWrapper(Stream writeStream)
+    public WriterStreamWrapper(Stream writeStream) : base(writeStream)
     {
-        _writeStream = writeStream;
-        if (!_writeStream.CanWrite)
+        if (!Stream.CanWrite)
         {
             throw new NotSupportedException("Wrapper works only with CanWrite streams");
         }
     }
 
-    public override void Close() => _writeStream.Close();
-    public override void Flush() => _writeStream.Flush();
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-    public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count)
     {
-        _writeStream.Write(buffer, offset, count);
+        try
+        {
+            Stream.Write(buffer, offset, count);
+        }
+        catch (Exception e)
+        {
+            LastException = e;
+            throw;
+        }
+
         _virtualLength += count;
         _virtualPosition += count;
     }
 
     public override bool CanRead => false;
-    public override bool CanSeek => false;
     public override bool CanWrite => true;
     public override long Length => _virtualLength;
-    public override long Position { get => _virtualPosition; set => throw new NotSupportedException(); }
+
+    public override long Position
+    {
+        get => _virtualPosition;
+        set => throw new NotSupportedException();
+    }
+}
+
+internal class ReaderStreamWrapper : BaseStreamWrapper
+{
+    public ReaderStreamWrapper(Stream readStream) : base(readStream)
+    {
+        if (!Stream.CanRead)
+        {
+            throw new NotSupportedException("Wrapper works only with CanWrite streams");
+        }
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        try
+        {
+            return Stream.Read(buffer, offset, count);
+        }
+        catch (Exception e)
+        {
+            LastException = e;
+            throw;
+        }
+    }
+
+    public override bool CanRead => true;
+    public override bool CanWrite => false;
 }
 
 public class GpgEncryptionManager : IEncryptionManager
@@ -139,27 +199,46 @@ public class GpgEncryptionManager : IEncryptionManager
     public void Encrypt(Stream src, Stream dst, CancellationToken cancellationToken)
     {
         using var gpgContext = PrepareContext();
-        
-        using var srcStream = new GpgmeStreamData(src);
-        using var dstStream = new GpgmeStreamData(new PositionWriterStreamWrapper(dst));
+
+        var srcStreamWrapper = new ReaderStreamWrapper(src);
+        var dstStreamWrapper = new WriterStreamWrapper(dst);
+
+        using var srcStream = new GpgmeStreamData(srcStreamWrapper);
+        using var dstStream = new GpgmeStreamData(dstStreamWrapper);
 
         gpgContext.Context.Armor = false;
 
         // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
-        
+
         _logger.Information("Encryption of stream...");
         try
         {
             gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw;
+            if (srcStreamWrapper.LastException == null && dstStreamWrapper.LastException == null)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
+            }
+
+            var innerException = new List<Exception> { e };
+            if (srcStreamWrapper.LastException != null)
+            {
+                innerException.Add(srcStreamWrapper.LastException);
+            }
+
+            if (dstStreamWrapper.LastException != null)
+            {
+                innerException.Add(dstStreamWrapper.LastException);
+            }
+
+            throw new AggregateException(innerException);
         }
     }
-    
+
     public void Encrypt(string src, string dst, CancellationToken cancellationToken)
     {
         using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
@@ -180,7 +259,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
         // ReSharper disable once AccessToDisposedClosure
         using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
-        
+
         _logger.Information("Decryption of file {Source} to {Target}...", src, dst);
         try
         {

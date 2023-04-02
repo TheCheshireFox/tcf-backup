@@ -36,7 +36,7 @@ public class GDriveAdapter : IGDriveAdapter
         {
             Console.WriteLine("Please visit url below:");
             Console.WriteLine(url.Build().ToString());
-
+            
             while (true)
             {
                 Console.WriteLine("Please enter redirect url:");
@@ -46,7 +46,7 @@ public class GDriveAdapter : IGDriveAdapter
                 {
                     var redirectUrl = new Uri(redirectUrlStr!);
                     var query = HttpUtility.ParseQueryString(redirectUrl.Query);
-                    
+
                     return Task.FromResult(new AuthorizationCodeResponseUrl { Code = query["code"] });
                 }
                 catch (Exception)
@@ -117,7 +117,7 @@ public class GDriveAdapter : IGDriveAdapter
         {
             return null;
         }
-        
+
         var parts = GetPathParts(directoryPath);
         var files = GetFiles();
 
@@ -136,14 +136,15 @@ public class GDriveAdapter : IGDriveAdapter
         return directoryId;
     }
 
-    private Google.Apis.Drive.v3.Data.File GetFile(string name, string? parentDirectoryId = null)
+    private async Task<Google.Apis.Drive.v3.Data.File> GetFileAsync(string name, string? parentDirectoryId = null, CancellationToken cancellationToken = default)
     {
         var listRequest = _driveService.Value.Files.List();
         listRequest.Spaces = "drive";
         listRequest.Fields = "files(id, name, parents, webContentLink)";
         listRequest.Q = "trashed = false";
 
-        var file = listRequest.Execute().Files.FirstOrDefault(f => f.Name == name && (parentDirectoryId == null || f.Parents.Contains(parentDirectoryId)));
+        var file = (await listRequest.ExecuteAsync(cancellationToken))
+            .Files.FirstOrDefault(f => f.Name == name && (parentDirectoryId == null || f.Parents.Contains(parentDirectoryId)));
         if (file == null)
         {
             throw new FileNotFoundException("File not found", name);
@@ -151,7 +152,7 @@ public class GDriveAdapter : IGDriveAdapter
 
         return file;
     }
-    
+
     public GDriveAdapter(ILogger logger, IFileSystem fs)
     {
         _logger = logger.ForContextShort<GDriveAdapter>();
@@ -161,12 +162,13 @@ public class GDriveAdapter : IGDriveAdapter
     public void Authorize()
     {
         _driveService = new Lazy<DriveService>(Authenticate(new LocalhostCodeReceiver()));
+        _driveService.Value.About.Get();
     }
 
     public string? CreateDirectory(string path)
     {
         path = Path.TrimEndingDirectorySeparator(path);
-        
+
         var parts = GetPathParts(path);
         var files = GetFiles();
 
@@ -198,7 +200,7 @@ public class GDriveAdapter : IGDriveAdapter
         return directoryId;
     }
 
-    public void UploadFile(Stream stream, string name, string? parentDirectoryId = null, CancellationToken cancellationToken = default)
+    public async Task UploadFileAsync(Stream stream, string name, string? parentDirectoryId = null, CancellationToken cancellationToken = default)
     {
         var cmu = _driveService.Value.Files.Create(new Google.Apis.Drive.v3.Data.File
         {
@@ -224,9 +226,9 @@ public class GDriveAdapter : IGDriveAdapter
 
         var progressLogger = new ProgressLogger(threshold);
         progressLogger.OnProgress += bytesSent => _logger.Information("Transferred: {Total}", StringExtensions.FormatBytes(bytesSent));
-        cmu.ProgressChanged += uploadProgress => progressLogger.Update(uploadProgress.BytesSent);
+        cmu.ProgressChanged += uploadProgress => progressLogger.Set(uploadProgress.BytesSent);
 
-        var uploadProgress = cmu.UploadAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+        var uploadProgress = await cmu.UploadAsync(cancellationToken);
 
         if (uploadProgress.Status != UploadStatus.Completed)
         {
@@ -234,20 +236,27 @@ public class GDriveAdapter : IGDriveAdapter
         }
     }
 
-    public void DownloadFile(string name, string destination, string? parentDirectoryId = null)
-    {
-        var file = GetFile(name, parentDirectoryId);
-
-        using var dstFile = File.OpenWrite(destination);
-        _driveService.Value.Files.Get(file.Id).Download(dstFile);
-    }
-
-    public void DeleteFile(string path)
+    public async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken = default)
     {
         var parentDirectory = Path.GetDirectoryName(path);
         var parentDirectoryId = GetDirectoryId(parentDirectory);
-        var file = GetFile(Path.GetFileName(path), parentDirectoryId);
+        try
+        {
+            await GetFileAsync(Path.GetFileName(path), parentDirectoryId, cancellationToken);
+            return true;
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
+        }
+    }
 
-        _driveService.Value.Files.Delete(file.Id).Execute();
+    public async Task DeleteFileAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var parentDirectory = Path.GetDirectoryName(path);
+        var parentDirectoryId = GetDirectoryId(parentDirectory);
+        var file = await GetFileAsync(Path.GetFileName(path), parentDirectoryId, cancellationToken);
+
+        await _driveService.Value.Files.Delete(file.Id).ExecuteAsync(cancellationToken);
     }
 }

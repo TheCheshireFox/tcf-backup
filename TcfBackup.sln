@@ -32,6 +32,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.LibArchive", "Tcf
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.Native", "TcfBackup.Native\TcfBackup.Native.csproj", "{C35329D0-07FF-47F0-A745-815714181BF9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.CommandLine.Options", "TcfBackup.CommandLine.Options\TcfBackup.CommandLine.Options.csproj", "{40AF728F-922E-42CC-807B-75CD605784C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.LxdClient.Models", "TcfBackup.LxdClient.Models\TcfBackup.LxdClient.Models.csproj", "{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -102,5 +106,13 @@ Global
 		{C35329D0-07FF-47F0-A745-815714181BF9}.Debug|x64.Build.0 = Debug|x64
 		{C35329D0-07FF-47F0-A745-815714181BF9}.Release|x64.ActiveCfg = Release|x64
 		{C35329D0-07FF-47F0-A745-815714181BF9}.Release|x64.Build.0 = Release|x64
+		{40AF728F-922E-42CC-807B-75CD605784C4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40AF728F-922E-42CC-807B-75CD605784C4}.Debug|x64.Build.0 = Debug|Any CPU
+		{40AF728F-922E-42CC-807B-75CD605784C4}.Release|x64.ActiveCfg = Release|Any CPU
+		{40AF728F-922E-42CC-807B-75CD605784C4}.Release|x64.Build.0 = Release|Any CPU
+		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Debug|x64.Build.0 = Debug|Any CPU
+		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Release|x64.ActiveCfg = Release|Any CPU
+		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

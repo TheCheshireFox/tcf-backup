@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace TcfBackup.LxdClient.Metadata;
+namespace TcfBackup.LxdClient.Models.Metadata;
 
-internal class GetBackupMetadata
+public class GetBackupMetadata
 {
     [JsonProperty("container_only")]
     public bool ContainerOnly { get; set; }

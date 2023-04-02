@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using TcfBackup.BackupDatabase;
-using TcfBackup.CmdlineOptions;
+using TcfBackup.CommandLine.Options;
 using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
 using TcfBackup.Extensions.Configuration;
@@ -20,7 +20,7 @@ using TcfBackup.Managers;
 using TcfBackup.Retention;
 using TcfBackup.Retention.BackupCleaners;
 using TcfBackup.Shared;
-using RetentionOptions = TcfBackup.CmdlineOptions.RetentionOptions;
+using RetentionOptions = TcfBackup.CommandLine.Options.RetentionOptions;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -191,7 +191,7 @@ public static class Program
         }
         catch (Exception e)
         {
-            dp.GetService<ILogger>()!.Fatal("{Exception}", e);
+            OnException(opts, e);
         }
     }
 

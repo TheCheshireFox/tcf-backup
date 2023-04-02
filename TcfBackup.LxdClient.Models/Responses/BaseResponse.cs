@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace TcfBackup.LxdClient.Responses;
+namespace TcfBackup.LxdClient.Models.Responses;
 
-internal abstract class BaseResponse<TMetadata>
+public abstract class BaseResponse<TMetadata>
 {
     [JsonProperty("type")]
     public string Type { get; set; } = null!;

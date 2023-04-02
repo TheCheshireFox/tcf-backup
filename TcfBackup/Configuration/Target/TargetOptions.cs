@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TcfBackup.Configuration.Target;
 
 public enum TargetType
@@ -7,6 +9,7 @@ public enum TargetType
     GDrive
 }
 
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class TargetOptions
 {
     public TargetType Type { get; set; }

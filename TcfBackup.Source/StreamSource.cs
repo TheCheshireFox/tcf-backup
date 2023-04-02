@@ -12,12 +12,12 @@ public class StreamSource : IStreamSource
         Name = name;
     }
 
-    public void Prepare()
+    public void Prepare(CancellationToken cancellationToken)
     {
         
     }
 
-    public void Cleanup()
+    public void Cleanup(CancellationToken cancellationToken)
     {
         _stream.Close();
     }

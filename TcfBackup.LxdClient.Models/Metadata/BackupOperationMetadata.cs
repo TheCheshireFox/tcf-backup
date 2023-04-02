@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace TcfBackup.LxdClient.Metadata;
+namespace TcfBackup.LxdClient.Models.Metadata;
 
-internal class BackupOperationMetadata
+public class BackupOperationMetadata
 {
     [JsonProperty("create_backup_progress")]
     public string CreateBackupProgress { get; set; } = string.Empty;

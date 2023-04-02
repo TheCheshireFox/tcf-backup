@@ -1,4 +1,0 @@
-install:
-    install bin/* -t $(DESTDIR)/opt/tcf-backup
-    chmod 755 $(DESTDIR)/opt/tcf-backup/tcf-backup
-    ln -s $(DESTDIR)/opt/tcf-backup/tcf-backup $(DESTDIR)/usr/bin/tcf-backup

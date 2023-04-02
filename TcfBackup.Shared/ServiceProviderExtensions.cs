@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace TcfBackup.Shared;
@@ -40,7 +41,7 @@ public static class ServiceProviderExtensions
         return true;
     }
 
-    public static T CreateService<T>(this IServiceProvider provider)
+    public static T CreateService<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]T>(this IServiceProvider provider)
     {
         var createdObjects = new Dictionary<Type, object>();
 

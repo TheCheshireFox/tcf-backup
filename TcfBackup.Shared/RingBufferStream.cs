@@ -6,7 +6,7 @@ public class RingBufferStream : Stream
     private readonly byte[] _buffer;
     private int _pos;
     private int _length;
-    
+
     private readonly AutoResetEvent _spaceEvt = new(true);
     private readonly AutoResetEvent _dataEvt = new(false);
     private readonly CancellationTokenSource _cts = new();
@@ -14,7 +14,7 @@ public class RingBufferStream : Stream
     private void WaitEvent(WaitHandle evt, Func<bool> predicate)
     {
         var events = new[] { evt, _cts.Token.WaitHandle };
-        
+
         while (!predicate())
         {
             Monitor.Exit(_lock);
@@ -38,7 +38,7 @@ public class RingBufferStream : Stream
         {
             buffer = buffer[..(_buffer.Length - _length)];
         }
-        
+
         if (_pos + _length + buffer.Length <= _buffer.Length)
         {
             buffer.CopyTo(new Span<byte>(_buffer, _pos + _length, buffer.Length));
@@ -51,11 +51,11 @@ public class RingBufferStream : Stream
         {
             var part1 = buffer[..(_buffer.Length - (_pos + _length))];
             var part2 = buffer[part1.Length..];
-        
+
             part1.CopyTo(new Span<byte>(_buffer, _pos + _length, part1.Length));
             part2.CopyTo(_buffer);
         }
-        
+
         _length += buffer.Length;
         _dataEvt.Set();
 
@@ -80,7 +80,7 @@ public class RingBufferStream : Stream
         {
             var part1 = _buffer[start..];
             var part2 = _buffer[..(length - part1.Length)];
-            
+
             part1.CopyTo(buffer);
             part2.CopyTo(buffer[part1.Length..]);
         }
@@ -98,10 +98,10 @@ public class RingBufferStream : Stream
         }
 
         _spaceEvt.Set();
-        
+
         return length;
     }
-    
+
     public RingBufferStream(int bufferSize)
     {
         _buffer = new byte[bufferSize];
@@ -111,7 +111,6 @@ public class RingBufferStream : Stream
 
     public override void Flush()
     {
-        
     }
 
     public override int Read(byte[] buffer, int offset, int count)
@@ -126,7 +125,7 @@ public class RingBufferStream : Stream
             {
                 return 0;
             }
-            
+
             return ReadNoLock(new Span<byte>(buffer, offset, count));
         }
     }
@@ -150,7 +149,7 @@ public class RingBufferStream : Stream
                 {
                     throw new ObjectDisposedException("Stream is closed");
                 }
-            
+
                 var written = WriteNoLock(bufferSpan);
                 bufferSpan = bufferSpan[written..];
             }
@@ -167,5 +166,10 @@ public class RingBufferStream : Stream
     public override bool CanSeek => false;
     public override bool CanWrite => true;
     public override long Length => _length;
-    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+    public override long Position
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
 }

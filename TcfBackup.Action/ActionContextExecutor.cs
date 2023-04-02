@@ -2,80 +2,106 @@ using TcfBackup.Source;
 
 namespace TcfBackup.Action;
 
+public delegate Task ApplyFileListSourceAction(IFileListSource source, IActionContext context, CancellationToken cancellationToken);
+public delegate Task ApplyStreamSourceAction(IStreamSource source, IActionContext context, CancellationToken cancellationToken);
+
+public interface IActionContextExecutor
+{
+    public Task<bool> ExecAsync(IActionContext context, CancellationToken cancellationToken);
+}
+
+public class FileListSourceActionContextExecutor : IActionContextExecutor
+{
+    private readonly ApplyFileListSourceAction _action;
+
+    public FileListSourceActionContextExecutor(ApplyFileListSourceAction action)
+    {
+        _action = action;
+    }
+
+    public async Task<bool> ExecAsync(IActionContext context, CancellationToken cancellationToken)
+    {
+        if (!context.TryGetFileListSource(out var fileListSource))
+        {
+            return false;
+        }
+
+        await _action(fileListSource, context, cancellationToken);
+        return true;
+    }
+}
+
+public class StreamSourceActionContextExecutor : IActionContextExecutor
+{
+    private readonly ApplyStreamSourceAction _action;
+
+    public StreamSourceActionContextExecutor(ApplyStreamSourceAction action)
+    {
+        _action = action;
+    }
+
+    public async Task<bool> ExecAsync(IActionContext context, CancellationToken cancellationToken)
+    {
+        if (!context.TryGetStreamSource(out var streamSource))
+        {
+            return false;
+        }
+
+        await _action(streamSource, context, cancellationToken);
+        return true;
+    }
+}
+
 public class ActionContextExecutor
 {
-    private enum ActionVisitorApplyType
-    {
-        FileListSource,
-        StreamSource
-    }
-    
     private readonly IActionContext _actionContext;
-    private readonly List<(ActionVisitorApplyType ApplyType, Delegate Action)> _actions = new();
+    private readonly List<IActionContextExecutor> _actionExecutors = new();
 
     private ActionContextExecutor(IActionContext actionContext) => _actionContext = actionContext;
 
-    private void AddAction(ActionVisitorApplyType applyType, Delegate action)
+    private void AddAction(IActionContextExecutor actionExecutor)
     {
-        if (_actions.Any(a => a.ApplyType == applyType))
+        if (_actionExecutors.Any(a => a.GetType() == actionExecutor.GetType()))
         {
-            throw new ArgumentException($"Action with type {applyType} already exists");
+            throw new ArgumentException($"Action with type {actionExecutor.GetType()} already exists");
         }
         
-        _actions.Add((applyType, action));
+        _actionExecutors.Add(actionExecutor);
     }
     
     public static ActionContextExecutor For(IActionContext actionContext) => new(actionContext);
 
-    public ActionContextExecutor ApplyFileListSource(Action<IFileListSource, IActionContext, CancellationToken> action)
+    public ActionContextExecutor ApplyFileListSource(ApplyFileListSourceAction action)
     {
-        AddAction(ActionVisitorApplyType.FileListSource, action);
+        AddAction(new FileListSourceActionContextExecutor(action));
         return this;
     }
     
-    public ActionContextExecutor ApplyStreamSource(Action<IStreamSource, IActionContext, CancellationToken> action)
+    public ActionContextExecutor ApplyStreamSource(ApplyStreamSourceAction action)
     {
-        AddAction(ActionVisitorApplyType.StreamSource, action);
+        AddAction(new StreamSourceActionContextExecutor(action));
         return this;
     }
 
-    public void Execute(CancellationToken cancellationToken)
+    public async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        for (var i = 0; i < _actions.Count; i++)
+        for (var i = 0; i < _actionExecutors.Count; i++)
         {
             void ThrowIfLast()
             {
-                if (i == _actions.Count - 1)
+                if (i == _actionExecutors.Count - 1)
                 {
                     throw new Exception("Unable to find any source");
                 }
             }
             
-            var (applyType, action) = _actions[i];
-            
-            switch (applyType)
+            var executor = _actionExecutors[i];
+            if (await executor.ExecAsync(_actionContext, cancellationToken))
             {
-                case ActionVisitorApplyType.StreamSource:
-                    if (!_actionContext.TryGetStreamSource(out var streamSource))
-                    {
-                        ThrowIfLast();
-                        continue;
-                    }
-                    
-                    ((Action<IStreamSource, IActionContext, CancellationToken>)action)(streamSource, _actionContext, cancellationToken);
-                    return;
-                case ActionVisitorApplyType.FileListSource:
-                    if (!_actionContext.TryGetFileListSource(out var fileListSource))
-                    {
-                        ThrowIfLast();
-                        continue;
-                    }
-                    
-                    ((Action<IFileListSource, IActionContext, CancellationToken>)action)(fileListSource, _actionContext, cancellationToken);
-                    return;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(applyType), $"Unknown action type {applyType}");
+                return;
             }
+            
+            ThrowIfLast();
         }
     }
 }

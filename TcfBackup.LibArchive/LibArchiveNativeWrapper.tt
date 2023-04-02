@@ -27,7 +27,8 @@
 
     var ignoreMethods = new string[]
     {
-        //"archive_set_error"
+        "archive_set_error",
+        "archive_error_string"
     };
 #>
 namespace TcfBackup.LibArchive;
@@ -125,6 +126,8 @@ foreach (var method in methods)
     }
 }
 #>
+    public static void archive_set_error(nint archive, RetCode err, ref byte fmt)
+        => LibArchiveNative.archive_set_error(archive, err, __arglist(ref fmt));
 }
 <#+
       class ExternMethod

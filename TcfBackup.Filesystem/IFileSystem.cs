@@ -1,6 +1,6 @@
 namespace TcfBackup.Filesystem;
 
-public interface IFilesystemFile
+public interface IFileSystemFile
 {
     bool Exists(string path);
     void Copy(string source, string destination, bool overwrite);
@@ -12,9 +12,9 @@ public interface IFilesystemFile
     Stream OpenRead(string path);
 }
 
-public interface IFilesystemDirectory
+public interface IFileSystemDirectory
 {
-    bool Exists(string path);
+    bool Exists(string? path);
     void Create(string path);
     void Delete(string path, bool recursive = true);
     
@@ -23,8 +23,8 @@ public interface IFilesystemDirectory
 
 public interface IFileSystem
 {
-    IFilesystemFile File { get; }
-    IFilesystemDirectory Directory { get; }
+    IFileSystemFile File { get; }
+    IFileSystemDirectory Directory { get; }
 
     string GetTempPath();
     string GetTempFileName();

@@ -4,13 +4,11 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Configurations>Debug;Release</Configurations>
-        <Platforms>AnyCPU;x64</Platforms>
-        <IsTrimmable>true</IsTrimmable>
+        <IsTrimmable>false</IsTrimmable>
     </PropertyGroup>
-    
+
     <ItemGroup>
-      <ProjectReference Include="..\TcfBackup.LxdClient.Models\TcfBackup.LxdClient.Models.csproj" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
 </Project>

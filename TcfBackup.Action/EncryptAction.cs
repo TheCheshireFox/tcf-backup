@@ -34,13 +34,12 @@ public class EncryptAction : IAction
         _encryptionManager = encryptionManager;
     }
 
-    private void Apply(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    private Task ApplyAsync(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         var files = source.GetFiles().ToList();
         if (files.Count == 1)
         {
-            Apply(new FileStreamSource(_filesystem, (FileStream)_filesystem.File.OpenRead(files[0].Path), false), actionContext, cancellationToken);
-            return;
+            return ApplyAsync(new FileStreamSource(_filesystem, (FileStream)_filesystem.File.OpenRead(files[0].Path), false), actionContext, cancellationToken);
         }
         
         _logger.Information("Start encryption");
@@ -52,6 +51,8 @@ public class EncryptAction : IAction
             var encryptedFiles = new Dictionary<string, string>();
             foreach (var file in source.GetFiles())
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 var dst = Path.Combine(targetDir, Path.GetFileName(file.Path));
                 while (_filesystem.File.Exists(dst))
                 {
@@ -69,26 +70,30 @@ public class EncryptAction : IAction
             actionContext.SetResult(FilesListSource.CreateMutable(_filesystem, targetDir));
             
             _logger.Information("Encryption complete");
+
+            return Task.CompletedTask;
         }
         catch (Exception)
         {
-            _filesystem.Directory.Delete(targetDir, true);
+            _filesystem.Directory.Delete(targetDir);
             throw;
         }
     }
 
-    private void Apply(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    private Task ApplyAsync(IStreamSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamEncryption(source.GetStream(), dst, ct), 1024 * 1024, cancellationToken);
         actionContext.SetResult(new StreamSource(asyncStream, source.Name));
+
+        return Task.CompletedTask;
     }
     
-    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
+    public Task ApplyAsync(IActionContext actionContext, CancellationToken cancellationToken)
     {
-        ActionContextExecutor
+        return ActionContextExecutor
             .For(actionContext)
-            .ApplyStreamSource(Apply)
-            .ApplyFileListSource(Apply)
-            .Execute(cancellationToken);
+            .ApplyStreamSource(ApplyAsync)
+            .ApplyFileListSource(ApplyAsync)
+            .ExecuteAsync(cancellationToken);
     }
 }

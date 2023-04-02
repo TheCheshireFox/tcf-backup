@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TcfBackup.Configuration.Action;
 
 public enum CompressEngine
@@ -5,6 +7,7 @@ public enum CompressEngine
     Tar
 }
 
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class CompressActionOptions : ActionOptions
 {
     public CompressEngine Engine { get; set; }

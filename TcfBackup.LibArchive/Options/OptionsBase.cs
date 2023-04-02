@@ -1,26 +1,19 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 
 namespace TcfBackup.LibArchive.Options;
 
-public abstract record OptionsBase
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+public abstract record OptionsBase(FilterCode FilterCode)
 {
     private static readonly IReadOnlyDictionary<FilterCode, string> s_moduleMapping = new Dictionary<FilterCode, string>
     {
-        { FilterCode.BZip, "bzip" },
+        { FilterCode.BZip2, "bzip2" },
         { FilterCode.GZip, "gzip" },
         { FilterCode.Xz, "xz" },
     };
 
-    private readonly OptionsAttribute _attr;
-
-    public FilterCode FilterCode => _attr.FilterCode;
-
-    public OptionsBase()
-    {
-        _attr = GetType().GetCustomAttribute<OptionsAttribute>() ?? throw new Exception("Archiver option hasn't OptionsAttribute");
-    }
-    
     public sealed override string ToString()
     {
         var sb = new StringBuilder();

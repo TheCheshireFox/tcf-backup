@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace TcfBackup.LxdClient.Requests;
+namespace TcfBackup.LxdClient.Models.Requests;
 
-internal class StartBackupRequest
+public class StartBackupRequest
 {
     [JsonProperty("compression_algorithm")]
     public string CompressionAlgorithm { get; set; } = null!;

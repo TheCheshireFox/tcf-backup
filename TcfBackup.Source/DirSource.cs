@@ -28,12 +28,12 @@ public class DirSource : IFileListSource
         .GetFiles(_dir, recursive: true, sameFilesystem: true, skipAccessDenied: true, followSymlinks)
         .Select(f => (IFile)new ImmutableFile(_filesystem, f)).ToArray();
 
-    public void Prepare()
+    public void Prepare(CancellationToken cancellationToken)
     {
         _logger.Information("Prepared for listing files in directory {Dir}", _dir);
     }
 
-    public void Cleanup()
+    public void Cleanup(CancellationToken cancellationToken)
     {
     }
 }

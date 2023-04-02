@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using TcfBackup.Filesystem;
 
@@ -13,20 +14,14 @@ public class FilesystemBackupCleaner : IBackupCleaner
         _fs = fs;
     }
 
-    public Task DeleteAsync(string path, bool throwIfNotExisted = false)
+    public Task DeleteAsync(string path, CancellationToken cancellationToken)
     {
-        try
-        {
-            _fs.File.Delete(path);
-        }
-        catch (FileNotFoundException)
-        {
-            if (throwIfNotExisted)
-            {
-                throw;
-            }
-        }
-        
+        _fs.File.Delete(path);
         return Task.CompletedTask;
+    }
+
+    public Task<bool> ExistsAsync(string path, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(_fs.File.Exists(path));
     }
 }

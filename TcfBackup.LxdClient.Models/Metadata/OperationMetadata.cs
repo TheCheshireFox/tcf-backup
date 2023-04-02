@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 
-namespace TcfBackup.LxdClient.Metadata;
+namespace TcfBackup.LxdClient.Models.Metadata;
 
-internal class StartBackupMetadata
+public class OperationMetadata<T>
 {
     [JsonProperty("id")]
     public Guid Id { get; set; }
@@ -36,4 +36,7 @@ internal class StartBackupMetadata
     
     [JsonProperty("location")]
     public string Location { get; set; } = null!;
+    
+    [JsonProperty("metadata")]
+    public T? Metadata { get; set; }
 }

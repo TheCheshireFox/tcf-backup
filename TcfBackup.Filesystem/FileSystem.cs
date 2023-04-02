@@ -2,7 +2,7 @@ using System.IO.Enumeration;
 
 namespace TcfBackup.Filesystem;
 
-public class FilesystemFile : IFilesystemFile
+public class FileSystemFile : IFileSystemFile
 {
     public bool Exists(string path) => File.Exists(path);
     public void Copy(string source, string destination, bool overwrite) => File.Copy(source, destination, overwrite);
@@ -18,7 +18,7 @@ public class FilesystemFile : IFilesystemFile
     public Stream OpenRead(string path) => File.OpenRead(path);
 }
 
-public class FilesystemDirectory : IFilesystemDirectory
+public class FileSystemDirectory : IFileSystemDirectory
 {
     private static IEnumerable<string> GetMountPoints()
     {
@@ -28,7 +28,7 @@ public class FilesystemDirectory : IFilesystemDirectory
             .Select(t => t[1]);
     }
     
-    public bool Exists(string path) => Directory.Exists(path);
+    public bool Exists(string? path) => Directory.Exists(path);
 
     public void Create(string path) => Directory.CreateDirectory(path);
 
@@ -43,6 +43,11 @@ public class FilesystemDirectory : IFilesystemDirectory
         
         bool ShouldIgnoreMountPoint(ref FileSystemEntry fse)
         {
+            if (!sameFilesystem)
+            {
+                return false;
+            }
+            
             var fsePath = fse.ToFullPath();
             return ignoreMountPoints.Any(mp => string.Equals(mp, fsePath) || fsePath.Contains(mp));
         }
@@ -70,8 +75,8 @@ public class FileSystem : IFileSystem
         _tmpDirectory = tmpDirectory;
     }
 
-    public IFilesystemFile File { get; } = new FilesystemFile();
-    public IFilesystemDirectory Directory { get; } = new FilesystemDirectory();
+    public IFileSystemFile File { get; } = new FileSystemFile();
+    public IFileSystemDirectory Directory { get; } = new FileSystemDirectory();
     public string GetTempPath() => _tmpDirectory ?? Path.GetTempPath();
     public string GetTempFileName()
     {

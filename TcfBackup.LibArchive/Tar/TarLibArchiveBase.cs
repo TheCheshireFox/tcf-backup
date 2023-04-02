@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
-using Mono.Unix;
 using TcfBackup.LibArchive.Options;
 
 namespace TcfBackup.LibArchive.Tar;
@@ -29,21 +27,21 @@ public abstract class TarLibArchiveBase : LibArchiveWriterBase
 
     private static void SetPathName(nint entry, string path)
     {
-        Span<byte> pathBytes = stackalloc byte[4096];
+        Span<byte> pathBytes = stackalloc byte[4097];
         
-        Unsafe.InitBlock(ref pathBytes.GetPinnableReference(), 0, (uint)pathBytes.Length);
-        Encoding.UTF8.GetBytes(path, pathBytes);
-        LibArchiveNativeWrapper.archive_entry_set_pathname_utf8(entry, ref pathBytes.GetPinnableReference());
+        var count = Encoding.UTF8.GetBytes(path, pathBytes);
+        Unsafe.InitBlock(ref Unsafe.AddByteOffset(ref pathBytes.GetPinnableReference(), count), 0, (uint)(pathBytes.Length - count));
+        LibArchiveNativeWrapper.archive_entry_set_pathname(entry, ref pathBytes.GetPinnableReference());
     }
     
     protected TarLibArchiveBase(ILibArchiveInitializer initializer, TarOptions tarOptions, OptionsBase options)
         : base(initializer, ArchiveFormat.GnuTar, options)
     {
-        _readDisk = LibArchiveNative.archive_read_disk_new();
+        _readDisk = LibArchiveNativeWrapper.archive_read_disk_new();
         _tarOptions = tarOptions;
     }
 
-    protected override bool SetupEntry(nint entry, string path)
+    protected override void SetupEntry(nint entry, string path)
     {
         SetPathName(entry, path);
         LibArchiveNativeWrapper.archive_read_disk_entry_from_file(_readDisk, entry, -1, nint.Zero);
@@ -53,12 +51,6 @@ public abstract class TarLibArchiveBase : LibArchiveWriterBase
         {
             SetPathName(entry, relPath);
         }
-
-        return new UnixSymbolicLinkInfo(path).FileType switch
-        {
-            FileTypes.RegularFile => true,
-            _ => false
-        };
     }
 
     protected override void Dispose(bool disposing)
@@ -77,5 +69,10 @@ public abstract class TarLibArchiveBase : LibArchiveWriterBase
         }
         
         base.Dispose(disposing);
+    }
+
+    ~TarLibArchiveBase()
+    {
+        Dispose(false);
     }
 }

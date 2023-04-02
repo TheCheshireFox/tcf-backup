@@ -1,8 +1,10 @@
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TcfBackup.Retention.BackupCleaners;
 
 public interface IBackupCleaner
 {
-    Task DeleteAsync(string path, bool throwIfNotExisted = false);
+    Task DeleteAsync(string path, CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(string path, CancellationToken cancellationToken);
 }

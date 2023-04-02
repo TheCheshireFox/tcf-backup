@@ -44,7 +44,7 @@ public class CompressAction : IAction
         }, cancellationToken);
     }
 
-    private void Apply(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
+    private Task ApplyAsync(IFileListSource source, IActionContext actionContext, CancellationToken cancellationToken)
     {
         var archiveName = string.IsNullOrEmpty(_archiveName)
             ? $"{StringExtensions.GenerateRandomString(8)}.{ToExtension(_compressionManager.CompressAlgorithm)}"
@@ -52,17 +52,19 @@ public class CompressAction : IAction
                 ? $"{_archiveName}.{ToExtension(_compressionManager.CompressAlgorithm)}"
                 : _archiveName;
         
-        var files = source.GetFiles();
-        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamCompression(files.Select(f => f.Path), dst, ct), 1024 * 1024, cancellationToken);
+        var files = source.GetFiles().Select(f => f.Path).Order();
+        var asyncStream = new AsyncFeedStream((dst, ct) => RunStreamCompression(files, dst, ct), 1024 * 1024, cancellationToken);
         
         actionContext.SetResult(new StreamSource(asyncStream, archiveName));
+
+        return Task.CompletedTask;
     }
 
-    public void Apply(IActionContext actionContext, CancellationToken cancellationToken)
+    public Task ApplyAsync(IActionContext actionContext, CancellationToken cancellationToken)
     {
-        ActionContextExecutor
+        return ActionContextExecutor
             .For(actionContext)
-            .ApplyFileListSource(Apply)
-            .Execute(cancellationToken);
+            .ApplyFileListSource(ApplyAsync)
+            .ExecuteAsync(cancellationToken);
     }
 }

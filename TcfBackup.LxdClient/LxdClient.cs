@@ -1,12 +1,14 @@
 ﻿using System.Net.Sockets;
+using TcfBackup.LxdClient.Models.Requests;
+using TcfBackup.LxdClient.Models.Responses;
 using TcfBackup.LxdClient.Operation;
-using TcfBackup.LxdClient.Requests;
-using TcfBackup.LxdClient.Responses;
 
 namespace TcfBackup.LxdClient;
 
 public class LxdClient
 {
+    private const string InstancesUrl = "/1.0/instances";
+    
     private readonly string _address;
     private readonly Func<string, HttpClient> _connectionFactory;
 
@@ -56,8 +58,16 @@ public class LxdClient
     public async Task<string[]> ListContainersAsync()
     {
         using var httpClient = _connectionFactory(_address);
-        var resp = await httpClient.GetAsync<InstancesResponse>("/1.0/instances");
-        return (resp?.Metadata ?? Enumerable.Empty<string>()).ToArray();
+        var resp = await httpClient.GetAsync<InstancesResponse>(InstancesUrl);
+        
+        if (resp?.Metadata == null)
+        {
+            return Array.Empty<string>();
+        }
+
+        return resp.Metadata
+            .Select(c => c.StartsWith(InstancesUrl) ? c[(InstancesUrl.Length + 1)..] : throw new FormatException($"Invalid instance url: {c}"))
+            .ToArray();
     }
 
     public async Task<LxdBackupOperation> BackupContainerAsync(string container, string backupName, string compression, DateTime expiresAt)
@@ -73,7 +83,7 @@ public class LxdClient
             ExpiresAt = expiresAt
         };
         
-        var resp = await httpClient.PostAsync<StartBackupRequest, StartBackupResponse>($"/1.0/instances/{container}/backups", request);
+        var resp = await httpClient.PostAsync<StartBackupRequest, StartBackupResponse>($"{InstancesUrl}/{container}/backups", request);
         var operation = resp?.Operation;
         if (operation == null)
         {
@@ -101,13 +111,13 @@ public class LxdClient
     public async Task<Stream> DownloadBackup(LxdBackupOperation operation)
     {
         using var httpClient = _connectionFactory(_address);
-        return await httpClient.GetStreamAsync($"/1.0/instances/{operation.Container}/backups/{operation.BackupName}/export");
+        return await httpClient.GetStreamAsync($"{InstancesUrl}/{operation.Container}/backups/{operation.BackupName}/export");
     }
 
     public async Task DeleteBackup(LxdBackupOperation operation)
     {
         using var httpClient = _connectionFactory(_address);
-        var resp = await httpClient.DeleteAsync($"/1.0/instances/{operation.Container}/backups/{operation.BackupName}");
+        var resp = await httpClient.DeleteAsync($"{InstancesUrl}/{operation.Container}/backups/{operation.BackupName}");
         resp.EnsureSuccessStatusCode();
     }
 }

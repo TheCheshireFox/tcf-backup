@@ -7,6 +7,7 @@
         <RootNamespace>TcfBackup.BackupDatabase</RootNamespace>
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
+        <IsTrimmable>true</IsTrimmable>
     </PropertyGroup>
 
     <ItemGroup>

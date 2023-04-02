@@ -39,7 +39,7 @@ public class LxdManager : ILxdManager
         _lxdClient = new LxdClient.LxdClient(address);
     }
 
-    private async Task BackupContainerAsync(string container, string targetFile)
+    private async Task BackupContainerAsync(string container, string targetFile, CancellationToken cancellationToken)
     {
         var backupName = $"tcf-backup.{container}.{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
@@ -49,12 +49,16 @@ public class LxdManager : ILxdManager
         
         while (true)
         {
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken);
 
             var status = await _lxdClient.GetBackupOperationStatus(operation);
             if (status.State == BackupOperationState.InProgress)
             {
-                _logger.Information("Backup: {Progress}", status.Progress);
+                if (!string.IsNullOrEmpty(status.Progress))
+                {
+                    _logger.Information("Backup: {Progress}", status.Progress);
+                }
+
                 continue;
             }
 
@@ -74,10 +78,10 @@ public class LxdManager : ILxdManager
         await using var file = File.Open(targetFile, FileMode.Create, FileAccess.Write, FileShare.None);
         
         int count;
-        while ((count = await backupStream.ReadAsync(buffer)) != 0)
+        while ((count = await backupStream.ReadAsync(buffer, cancellationToken)) != 0)
         {
-            progressLogger.Update(count);
-            await file.WriteAsync(buffer.AsMemory()[..count]);
+            progressLogger.Add(count);
+            await file.WriteAsync(buffer.AsMemory()[..count], cancellationToken);
         }
     }
     
@@ -85,6 +89,6 @@ public class LxdManager : ILxdManager
 
     public string[] ListContainers() => _lxdClient.ListContainersAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
-    public void BackupContainer(string container, string targetFile) =>
-        BackupContainerAsync(container, targetFile).ConfigureAwait(false).GetAwaiter().GetResult();
+    public void BackupContainer(string container, string targetFile, CancellationToken cancellationToken) =>
+        BackupContainerAsync(container, targetFile, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 }

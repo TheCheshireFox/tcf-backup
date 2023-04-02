@@ -11,6 +11,7 @@
         <Configurations>Debug;Release</Configurations>
         <Platforms>x64;arm64</Platforms>
         <Nullable>enable</Nullable>
+        <IsTrimmable>true</IsTrimmable>
     </PropertyGroup>
     
     <ItemGroup>

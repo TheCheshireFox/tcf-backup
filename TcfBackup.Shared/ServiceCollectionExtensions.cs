@@ -1,10 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TcfBackup.Shared;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSingletonFromFactory<TFactory, T>(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddSingletonFromFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]TFactory, T>(this IServiceCollection serviceCollection)
         where TFactory : class, IServiceCollectionFactory<T>
         where T : class
     {
@@ -13,7 +14,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton(sp => sp.GetService<TFactory>()!.Create());
     }
 
-    public static IServiceCollection AddTransientFromFactory<TFactory, T>(this IServiceCollection serviceCollection)
+    public static IServiceCollection AddTransientFromFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]TFactory, T>(this IServiceCollection serviceCollection)
         where TFactory : class, IServiceCollectionFactory<T>
         where T : class
     {

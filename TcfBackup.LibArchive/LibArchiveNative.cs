@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace TcfBackup.LibArchive;
@@ -6,7 +7,7 @@ public enum FilterCode
 {
     None = 0,
     GZip = 1,
-    BZip = 2,
+    BZip2 = 2,
     Compress = 3,
     Program = 4,
     Lzma = 5,
@@ -53,6 +54,7 @@ public enum RetCode
     Fatal = -30
 }
 
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 public enum FileType : uint
 {
     AE_IFMT = 0xF000,
@@ -80,12 +82,6 @@ public static class LibArchiveNative
 
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern void archive_entry_set_pathname(nint archiveEntry, ref byte pathBytes);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_pathname_utf8(nint archiveEntry, ref byte pathBytes);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_pathname_utf8(nint archiveEntry, nint pathBytes);
 
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern RetCode archive_write_add_filter(nint archive, FilterCode filterCode);
@@ -127,29 +123,17 @@ public static class LibArchiveNative
     public static extern RetCode archive_write_set_options(nint archive, string opts);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern string archive_error_string(nint archive);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_set_error(nint archive, RetCode err, string fmt);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_copy_stat(nint archiveEntry, nint statPtr);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_filetype(nint archiveEntry, FileType fileType);
+    public static extern nint archive_error_string(nint archive);
 
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_perm(nint archiveEntry, int mode);
+    public static extern void archive_set_error(nint archive, RetCode err, __arglist);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_size(nint archiveEntry, long size);
+    public static extern long archive_entry_size(nint archiveEntry);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_symlink_utf8(nint archiveEntry, string path);
+    public static extern int archive_entry_size_is_set(nint archiveEntry);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_gname(nint archiveEntry, string name);
-    
-    [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_entry_set_uname(nint archiveEntry, string name);
+    public static extern FileType archive_entry_filetype(nint archiveEntry);
 }

@@ -90,7 +90,7 @@ public class BackupConfigFactory : IFactory
             TarCompressor.Gzip => CompressAlgorithm.Gzip,
             TarCompressor.Xz => CompressAlgorithm.Xz,
             TarCompressor.BZip2 => CompressAlgorithm.BZip2,
-            _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
+            TarCompressor.None or _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
         };
 
         var tarOptions = configurationSection.Get<TarOptions>() ?? new TarOptions();
@@ -137,7 +137,7 @@ public class BackupConfigFactory : IFactory
     {
         if (string.IsNullOrEmpty(opts.Template))
         {
-            throw new FormatException("Template can not be empty");
+            throw new FormatException("Template cannot be empty");
         }
 
         return new RenameAction(_logger, _fs, opts.Template, opts.Overwrite);
@@ -190,7 +190,7 @@ public class BackupConfigFactory : IFactory
             DirectorySourceOptions dirOpts => new DirSource(_logger, _fs, dirOpts.Path),
             LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(lxdOpts), _fs, lxdOpts.Containers,
                 lxdOpts.IgnoreMissing),
-            var notSupportedSource => throw new NotSupportedException($"Source {notSupportedSource.Type} not supported")
+            _ => throw new NotSupportedException($"Source {source.Type} not supported")
         };
     }
 
@@ -214,7 +214,7 @@ public class BackupConfigFactory : IFactory
         {
             DirectoryTargetOptions dirOpts => new DirTarget(_logger, _fs, dirOpts.Path, dirOpts.Overwrite),
             GDriveTargetOptions gDriveOpts => new GDriveTarget(_logger, _gDriveAdapter, _fs, gDriveOpts.Path),
-            var notSupportedTarget => throw new NotSupportedException($"Target {notSupportedTarget.Type} not supported")
+            _ => throw new NotSupportedException($"Target {target.Type} not supported")
         };
     }
 }

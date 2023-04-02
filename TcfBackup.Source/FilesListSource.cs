@@ -28,14 +28,16 @@ public class FilesListSource : IFileListSource, IDisposable
     
     public IEnumerable<IFile> GetFiles() => _files;
 
-    public void Prepare()
+    public void Prepare(CancellationToken cancellationToken)
     {
     }
 
-    public void Cleanup()
+    public void Cleanup(CancellationToken cancellationToken)
     {
         foreach (var file in _files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             try
             {
                 file.Delete();
@@ -50,7 +52,7 @@ public class FilesListSource : IFileListSource, IDisposable
         {
             try
             {
-                _fs.Directory.Delete(_parentDir, true);
+                _fs.Directory.Delete(_parentDir);
             }
             catch (Exception)
             {
@@ -59,5 +61,5 @@ public class FilesListSource : IFileListSource, IDisposable
         }
     }
 
-    public void Dispose() => Cleanup();
+    public void Dispose() => Cleanup(CancellationToken.None);
 }

@@ -2,14 +2,14 @@
 
 public static class LibArchiveNativeWrapper
 {
-    private static RetCode ThrowIfError(nint archive, RetCode retCode, string message)
+    private static unsafe RetCode ThrowIfError(nint archive, RetCode retCode, string message)
     {
         if (retCode == RetCode.Ok)
         {
             return retCode;
         }
 
-        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{LibArchiveNative.archive_error_string(archive)}");
+        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{new string((char*)LibArchiveNative.archive_error_string(archive).ToPointer())}");
     }
 
     private static RetCode ThrowIfError(RetCode retCode, string message)
@@ -38,10 +38,6 @@ public static class LibArchiveNativeWrapper
         => ThrowIfError(LibArchiveNative.archive_read_disk_new(), "Unable to create disk reader");
     public static void archive_entry_set_pathname(nint archiveEntry, ref byte pathBytes)
         => LibArchiveNative.archive_entry_set_pathname(archiveEntry, ref pathBytes);
-    public static void archive_entry_set_pathname_utf8(nint archiveEntry, ref byte pathBytes)
-        => LibArchiveNative.archive_entry_set_pathname_utf8(archiveEntry, ref pathBytes);
-    public static void archive_entry_set_pathname_utf8(nint archiveEntry, nint pathBytes)
-        => LibArchiveNative.archive_entry_set_pathname_utf8(archiveEntry, pathBytes);
     public static RetCode archive_write_add_filter(nint archive, FilterCode filterCode)
         => ThrowIfError(archive, LibArchiveNative.archive_write_add_filter(archive, filterCode), "Unable to add filter");
     public static RetCode archive_write_set_format(nint archive, ArchiveFormat archiveFormat)
@@ -68,22 +64,12 @@ public static class LibArchiveNativeWrapper
         => ThrowIfError(archive, LibArchiveNative.archive_free(archive), "Unable to free archive memory");
     public static RetCode archive_write_set_options(nint archive, string opts)
         => ThrowIfError(archive, LibArchiveNative.archive_write_set_options(archive, opts), "Unable to set archive options");
-    public static string archive_error_string(nint archive)
-        => LibArchiveNative.archive_error_string(archive);
-    public static void archive_set_error(nint archive, RetCode err, string fmt)
-        => LibArchiveNative.archive_set_error(archive, err, fmt);
-    public static void archive_entry_copy_stat(nint archiveEntry, nint statPtr)
-        => LibArchiveNative.archive_entry_copy_stat(archiveEntry, statPtr);
-    public static void archive_entry_set_filetype(nint archiveEntry, FileType fileType)
-        => LibArchiveNative.archive_entry_set_filetype(archiveEntry, fileType);
-    public static void archive_entry_set_perm(nint archiveEntry, int mode)
-        => LibArchiveNative.archive_entry_set_perm(archiveEntry, mode);
-    public static void archive_entry_set_size(nint archiveEntry, long size)
-        => LibArchiveNative.archive_entry_set_size(archiveEntry, size);
-    public static void archive_entry_set_symlink_utf8(nint archiveEntry, string path)
-        => LibArchiveNative.archive_entry_set_symlink_utf8(archiveEntry, path);
-    public static void archive_entry_set_gname(nint archiveEntry, string name)
-        => LibArchiveNative.archive_entry_set_gname(archiveEntry, name);
-    public static void archive_entry_set_uname(nint archiveEntry, string name)
-        => LibArchiveNative.archive_entry_set_uname(archiveEntry, name);
+    public static long archive_entry_size(nint archiveEntry)
+        => LibArchiveNative.archive_entry_size(archiveEntry);
+    public static int archive_entry_size_is_set(nint archiveEntry)
+        => LibArchiveNative.archive_entry_size_is_set(archiveEntry);
+    public static FileType archive_entry_filetype(nint archiveEntry)
+        => LibArchiveNative.archive_entry_filetype(archiveEntry);
+    public static void archive_set_error(nint archive, RetCode err, ref byte fmt)
+        => LibArchiveNative.archive_set_error(archive, err, __arglist(ref fmt));
 }
