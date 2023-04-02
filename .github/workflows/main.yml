@@ -1,0 +1,48 @@
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+name: publish
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [ '7.0.x' ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Generate GDriveClientSecrets
+        env:
+          CREDENTIALS_BASE64: ${{ secrets.GDRIVE_CREDENTIALS }}
+        run: |
+          chmod +x TcfBackup.GDriveAdapter/gen_GDriveClientSecrets.sh
+          TcfBackup.GDriveAdapter/gen_GDriveClientSecrets.sh
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+#      - name: Test
+#        run: dotnet test --no-restore --verbosity normal
+      - name: publish
+        run: |
+          chmod +x publish/publish.sh
+          publish/publish.sh
+      - name: Compress
+        run: |
+          tar -czvf tcf-backup-x64.tar.gz -C publish/publish/linux-x64/portable/dist/ .
+          tar -czvf tcf-backup-arm64.tar.gz -C publish/publish/linux-arm64/portable/dist/ .
+      - name: GH Release
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          files:
+            tcf-backup-x64.tar.gz
+            tcf-backup-arm64.tar.gz
