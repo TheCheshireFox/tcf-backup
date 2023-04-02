@@ -3,7 +3,8 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-publish/
+publish/linux-arm64
+publish/linux-x64
 .idea/
 publish-debug.sh
 TcfBackup.GDriveAdapter/credentials.json
