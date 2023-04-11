@@ -10,5 +10,5 @@ public interface IFilesArchiver : IDisposable
 {
     event Action<LogLevel, string>? OnLog;
     
-    void AddFile(string path);
+    void AddFile(string path, CancellationToken cancellationToken);
 }

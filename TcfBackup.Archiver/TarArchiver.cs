@@ -11,15 +11,10 @@ public class TarFilesArchiver : IFilesArchiver
     public TarFilesArchiver(LibArchiveWriterBase archiver)
     {
         _archiver = archiver;
-        _archiver.OnLog += (lvl, msg) => OnLog?.Invoke(lvl switch
-        {
-            LibArchive.LogLevel.Error => LogLevel.Error,
-            LibArchive.LogLevel.Warning => LogLevel.Warning,
-            _ => throw new ArgumentOutOfRangeException(nameof(lvl), lvl, null)
-        }, msg);
+        _archiver.OnLog += (lvl, msg) => OnLog?.Invoke(lvl.ToLogLevel(), msg);
     }
 
-    public void AddFile(string path) => _archiver.AddFile(path);
+    public void AddFile(string path, CancellationToken cancellationToken) => _archiver.AddFile(path, cancellationToken);
     
     public void Dispose() => _archiver.Dispose();
 }

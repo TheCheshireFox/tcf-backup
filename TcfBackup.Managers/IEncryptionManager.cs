@@ -1,6 +1,6 @@
 namespace TcfBackup.Managers;
 
-public interface IEncryptionManager : IManager
+public interface IEncryptionManager
 {
     void Encrypt(Stream src, Stream dst, CancellationToken cancellationToken);
     void Encrypt(string src, string dst, CancellationToken cancellationToken);

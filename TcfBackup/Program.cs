@@ -85,7 +85,7 @@ public static class Program
 
     private static IServiceCollection CreateServiceCollection(GenericOptions opts, string configurationFile)
     {
-        var globalConfig = ConfigurationFactory.CreateConfiguration(AppEnvironment.GlobalConfiguration);
+        var globalConfig = ConfigurationFactory.CreateOrDefaultConfiguration(AppEnvironment.GlobalConfiguration);
         var config = ConfigurationFactory.CreateConfiguration(configurationFile);
         globalConfig = globalConfig.Merge(config.GetSection("global"));
 

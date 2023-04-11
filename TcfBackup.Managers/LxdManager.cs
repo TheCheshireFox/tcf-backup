@@ -37,6 +37,8 @@ public class LxdManager : ILxdManager
     {
         _logger = logger.ForContextShort<LxdManager>();
         _lxdClient = new LxdClient.LxdClient(address);
+        
+        _lxdClient.CheckAvailable();
     }
 
     private async Task BackupContainerAsync(string container, string targetFile, CancellationToken cancellationToken)
@@ -84,8 +86,6 @@ public class LxdManager : ILxdManager
             await file.WriteAsync(buffer.AsMemory()[..count], cancellationToken);
         }
     }
-    
-    public void CheckAvailable() => _lxdClient.CheckAvailable();
 
     public string[] ListContainers() => _lxdClient.ListContainersAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 

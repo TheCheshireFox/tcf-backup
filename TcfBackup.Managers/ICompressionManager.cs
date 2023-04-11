@@ -1,6 +1,6 @@
 namespace TcfBackup.Managers;
 
-public interface ICompressionManager : IManager
+public interface ICompressionManager
 {
     CompressAlgorithm CompressAlgorithm { get; }
     

@@ -9,8 +9,6 @@ internal abstract class BaseStreamWrapper : Stream
 {
     protected readonly Stream Stream;
 
-    public Exception? LastException { get; protected set; }
-
     protected BaseStreamWrapper(Stream stream)
     {
         Stream = stream;
@@ -33,7 +31,7 @@ internal abstract class BaseStreamWrapper : Stream
     }
 }
 
-// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented and silences exceptions in Write
+// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented
 internal class WriterStreamWrapper : BaseStreamWrapper
 {
     private long _virtualPosition;
@@ -49,15 +47,7 @@ internal class WriterStreamWrapper : BaseStreamWrapper
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        try
-        {
-            Stream.Write(buffer, offset, count);
-        }
-        catch (Exception e)
-        {
-            LastException = e;
-            throw;
-        }
+        Stream.Write(buffer, offset, count);
 
         _virtualLength += count;
         _virtualPosition += count;
@@ -86,15 +76,7 @@ internal class ReaderStreamWrapper : BaseStreamWrapper
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        try
-        {
-            return Stream.Read(buffer, offset, count);
-        }
-        catch (Exception e)
-        {
-            LastException = e;
-            throw;
-        }
+        return Stream.Read(buffer, offset, count);
     }
 
     public override bool CanRead => true;
@@ -182,10 +164,7 @@ public class GpgEncryptionManager : IEncryptionManager
         _fs = fs;
         _getKey = getKey;
         _password = password;
-    }
 
-    public void CheckAvailable()
-    {
         try
         {
             Gpgme.CheckVersion();
@@ -218,21 +197,21 @@ public class GpgEncryptionManager : IEncryptionManager
         }
         catch (Exception e)
         {
-            if (srcStreamWrapper.LastException == null && dstStreamWrapper.LastException == null)
+            if (srcStream.LastCallbackException == null && dstStream.LastCallbackException == null)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 throw;
             }
 
             var innerException = new List<Exception> { e };
-            if (srcStreamWrapper.LastException != null)
+            if (srcStream.LastCallbackException != null)
             {
-                innerException.Add(srcStreamWrapper.LastException);
+                innerException.Add(srcStream.LastCallbackException);
             }
 
-            if (dstStreamWrapper.LastException != null)
+            if (dstStream.LastCallbackException != null)
             {
-                innerException.Add(dstStreamWrapper.LastException);
+                innerException.Add(dstStream.LastCallbackException);
             }
 
             throw new AggregateException(innerException);

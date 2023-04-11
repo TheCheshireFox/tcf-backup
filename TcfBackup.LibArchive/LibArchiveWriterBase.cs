@@ -40,7 +40,6 @@ public abstract class LibArchiveWriterBase : IDisposable
             }
             
             OnLog?.Invoke(LogLevel.Warning, exc.Message);
-            // It's fine, warnings are ok here
         }
     }
 
@@ -58,7 +57,7 @@ public abstract class LibArchiveWriterBase : IDisposable
 
     protected abstract void SetupEntry(nint entry, string path);
     
-    public unsafe void AddFile(string path)
+    public unsafe void AddFile(string path, CancellationToken cancellationToken)
     {
         try
         {
@@ -72,37 +71,38 @@ public abstract class LibArchiveWriterBase : IDisposable
                 default:
                     break;
             }
-            
+
             WriteEntryHeader();
 
             if (LibArchiveNativeWrapper.archive_entry_size_is_set(_entry) == 0)
             {
                 throw new LibArchiveException($"Size wasn't set for {path}");
             }
-            
+
             if (LibArchiveNativeWrapper.archive_entry_size(_entry) == 0)
             {
-                LibArchiveNativeWrapper.archive_entry_clear(_entry);
                 return;
             }
 
-            fixed (byte* buffer = _buffer)
+            using var stream = File.OpenRead(path);
+            int read;
+            while ((read = stream.Read(_buffer, 0, _buffer.Length)) > 0)
             {
-                var bufferSpan = new Span<byte>(buffer, _buffer.Length);
-                
-                using var stream = File.OpenRead(path);
-                int read;
-                while ((read = stream.Read(bufferSpan)) > 0)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                fixed (byte* buffer = _buffer)
                 {
                     LibArchiveNativeWrapper.archive_write_data(_archive, (nint)buffer, read);
                 }
             }
-
-            LibArchiveNativeWrapper.archive_entry_clear(_entry);
         }
         catch (Exception exc)
         {
             throw new LibArchiveException($"Unable to add file {path}", exc);
+        }
+        finally
+        {
+            LibArchiveNativeWrapper.archive_entry_clear(_entry);
         }
     }
 

@@ -65,7 +65,7 @@ public class BackupConfigFactory : IFactory
 
     private IBtrfsManager CreateBtrfsManager()
     {
-        return new BtrfsManager();
+        return new BtrfsManager(_logger, _fs);
     }
 
     private IEncryptionManager CreateEncryptionManager(EncryptionActionOptions opts)

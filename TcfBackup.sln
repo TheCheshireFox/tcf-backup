@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.CommandLine.Optio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.LxdClient.Models", "TcfBackup.LxdClient.Models\TcfBackup.LxdClient.Models.csproj", "{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcfBackup.BtrfsUtil", "TcfBackup.BtrfsUtil\TcfBackup.BtrfsUtil.csproj", "{9CFF3B35-CE9A-4177-944D-B80AC98EB0EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -108,5 +110,9 @@ Global
 		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Debug|x64.Build.0 = Debug|Any CPU
 		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Release|x64.ActiveCfg = Release|Any CPU
 		{01BE9B7E-17EC-48A6-845B-96C3F1BDD149}.Release|x64.Build.0 = Release|Any CPU
+		{9CFF3B35-CE9A-4177-944D-B80AC98EB0EF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9CFF3B35-CE9A-4177-944D-B80AC98EB0EF}.Debug|x64.Build.0 = Debug|Any CPU
+		{9CFF3B35-CE9A-4177-944D-B80AC98EB0EF}.Release|x64.ActiveCfg = Release|Any CPU
+		{9CFF3B35-CE9A-4177-944D-B80AC98EB0EF}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

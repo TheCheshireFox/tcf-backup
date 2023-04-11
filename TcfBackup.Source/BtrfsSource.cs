@@ -52,7 +52,7 @@ public class BtrfsSource : IFileListSource
 
         _logger.Information("Creating snapshot of {Subvolume} to {Snapshot}", _subvolume, _snapshot);
 
-        _btrfsManager.CreateSnapshot(_subvolume, _snapshot);
+        _btrfsManager.CreateSnapshot(_subvolume, _snapshot, true);
 
         _logger.Information("Snapshot created");
     }

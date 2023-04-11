@@ -112,4 +112,18 @@ public static class ConfigurationFactory
     }
 
     public static IConfiguration CreateConfiguration(string? path) => ReadConfiguration(path);
+
+    public static IConfiguration CreateOrDefaultConfiguration(string? path, IDictionary<string, string?>? @default = default)
+    {
+        try
+        {
+            return CreateConfiguration(path);
+        }
+        catch (FileNotFoundException)
+        {
+            return new ConfigurationBuilder()
+                .AddInMemoryCollection(@default ?? new Dictionary<string, string?>())
+                .Build();
+        }
+    }
 }

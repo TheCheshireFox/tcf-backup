@@ -44,9 +44,9 @@ function make_standard() {
 	DIR="${1}"
 
   mkdir -p "$DIR"/standard/{pdb,dist/opt/tcf-backup}
-	mv "$DIR"/standard/Release/*.pdb "$DIR/standard/pdb"
-	mv "$DIR"/standard/Release/*.dll "$DIR/standard/dist/opt/tcf-backup"
-	mv "$DIR"/standard/Release/*.so "$DIR/standard/dist/opt/tcf-backup"
+  mv "$DIR"/standard/Release/*.pdb "$DIR/standard/pdb"
+  mv "$DIR"/standard/Release/*.dll "$DIR/standard/dist/opt/tcf-backup"
+  mv "$DIR"/standard/Release/*.so "$DIR/standard/dist/opt/tcf-backup"
 	mv "$DIR/standard/Release/tcf-backup.deps.json" "$DIR/standard/dist/opt/tcf-backup"
 	mv "$DIR/standard/Release/tcf-backup.runtimeconfig.json" "$DIR/standard/dist/opt/tcf-backup"
 	mv "$DIR/standard/Release/tcf-backup" "$DIR/standard/dist/opt/tcf-backup"

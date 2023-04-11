@@ -8,9 +8,18 @@
         <Platforms>AnyCPU;arm64;x64</Platforms>
         <IsTrimmable>true</IsTrimmable>
     </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
     
     <ItemGroup>
         <ProjectReference Include="..\TcfBackup.Archiver\TcfBackup.Archiver.csproj" />
+        <ProjectReference Include="..\TcfBackup.BtrfsUtil\TcfBackup.BtrfsUtil.csproj" />
         <ProjectReference Include="..\TcfBackup.Filesystem\TcfBackup.Filesystem.csproj" />
         <ProjectReference Include="..\TcfBackup.LxdClient\TcfBackup.LxdClient.csproj" />
         <ProjectReference Include="..\TcfBackup.Shared\TcfBackup.Shared.csproj" />
