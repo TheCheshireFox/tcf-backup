@@ -27,10 +27,11 @@
 
     var ignoreMethods = new string[]
     {
-        "archive_set_error",
         "archive_error_string"
     };
 #>
+using System.Runtime.InteropServices;
+
 namespace TcfBackup.LibArchive;
 
 public static class LibArchiveNativeWrapper
@@ -42,7 +43,7 @@ public static class LibArchiveNativeWrapper
             return retCode;
         }
 
-        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{LibArchiveNative.archive_error_string(archive)}");
+        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{Marshal.PtrToStringAnsi(LibArchiveNative.archive_error_string(archive))}");
     }
 
     private static RetCode ThrowIfError(RetCode retCode, string message)
@@ -126,8 +127,6 @@ foreach (var method in methods)
     }
 }
 #>
-    public static void archive_set_error(nint archive, RetCode err, ref byte fmt)
-        => LibArchiveNative.archive_set_error(archive, err, __arglist(ref fmt));
 }
 <#+
       class ExternMethod

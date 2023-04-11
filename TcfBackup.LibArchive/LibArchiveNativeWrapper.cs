@@ -1,15 +1,17 @@
-﻿namespace TcfBackup.LibArchive;
+﻿using System.Runtime.InteropServices;
+
+namespace TcfBackup.LibArchive;
 
 public static class LibArchiveNativeWrapper
 {
-    private static unsafe RetCode ThrowIfError(nint archive, RetCode retCode, string message)
+    private static RetCode ThrowIfError(nint archive, RetCode retCode, string message)
     {
         if (retCode == RetCode.Ok)
         {
             return retCode;
         }
 
-        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{new string((char*)LibArchiveNative.archive_error_string(archive).ToPointer())}");
+        throw new LibArchiveException(retCode, $"[{retCode}]: {message}\n{Marshal.PtrToStringAnsi(LibArchiveNative.archive_error_string(archive))}");
     }
 
     private static RetCode ThrowIfError(RetCode retCode, string message)
@@ -64,12 +66,12 @@ public static class LibArchiveNativeWrapper
         => ThrowIfError(archive, LibArchiveNative.archive_free(archive), "Unable to free archive memory");
     public static RetCode archive_write_set_options(nint archive, string opts)
         => ThrowIfError(archive, LibArchiveNative.archive_write_set_options(archive, opts), "Unable to set archive options");
+    public static void archive_set_error(nint archive, RetCode err, ref byte message)
+        => LibArchiveNative.archive_set_error(archive, err, ref message);
     public static long archive_entry_size(nint archiveEntry)
         => LibArchiveNative.archive_entry_size(archiveEntry);
     public static int archive_entry_size_is_set(nint archiveEntry)
         => LibArchiveNative.archive_entry_size_is_set(archiveEntry);
     public static FileType archive_entry_filetype(nint archiveEntry)
         => LibArchiveNative.archive_entry_filetype(archiveEntry);
-    public static void archive_set_error(nint archive, RetCode err, ref byte fmt)
-        => LibArchiveNative.archive_set_error(archive, err, __arglist(ref fmt));
 }

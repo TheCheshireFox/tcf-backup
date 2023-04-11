@@ -126,7 +126,7 @@ public static class LibArchiveNative
     public static extern nint archive_error_string(nint archive);
 
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern void archive_set_error(nint archive, RetCode err, __arglist);
+    public static extern void archive_set_error(nint archive, RetCode err, ref byte message);
     
     [DllImport("libarchive.so.13", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public static extern long archive_entry_size(nint archiveEntry);
