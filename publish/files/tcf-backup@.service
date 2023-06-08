@@ -2,3 +2,6 @@
 Type=simple
 Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp"
 ExecStart=/usr/bin/tcf-backup backup %i
+Nice=19
+IOSchedulingClass=idle
+IOSchedulingPriority=7
