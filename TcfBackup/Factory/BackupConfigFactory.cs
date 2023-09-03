@@ -11,6 +11,7 @@ using TcfBackup.Configuration.Target;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
+using TcfBackup.Managers.Gpg;
 using TcfBackup.Source;
 using TcfBackup.Target;
 

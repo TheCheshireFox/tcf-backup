@@ -3,94 +3,32 @@ using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Shared;
 
-namespace TcfBackup.Managers;
-
-internal abstract class BaseStreamWrapper : Stream
-{
-    protected readonly Stream Stream;
-
-    protected BaseStreamWrapper(Stream stream)
-    {
-        Stream = stream;
-    }
-
-    public override void Flush() => Stream.Flush();
-    public override long Seek(long offset, SeekOrigin origin) => Stream.Seek(offset, origin);
-    public override void SetLength(long value) => Stream.SetLength(value);
-
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-    public override bool CanSeek => Stream.CanSeek;
-    public override long Length => Stream.Length;
-
-    public override long Position
-    {
-        get => Stream.Position;
-        set => Stream.Position = value;
-    }
-}
-
-// Quirk of libgpgme, GpgmeStreamData expects stream Position is implemented
-internal class WriterStreamWrapper : BaseStreamWrapper
-{
-    private long _virtualPosition;
-    private long _virtualLength;
-
-    public WriterStreamWrapper(Stream writeStream) : base(writeStream)
-    {
-        if (!Stream.CanWrite)
-        {
-            throw new NotSupportedException("Wrapper works only with CanWrite streams");
-        }
-    }
-
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        Stream.Write(buffer, offset, count);
-
-        _virtualLength += count;
-        _virtualPosition += count;
-    }
-
-    public override bool CanRead => false;
-    public override bool CanWrite => true;
-    public override long Length => _virtualLength;
-
-    public override long Position
-    {
-        get => _virtualPosition;
-        set => throw new NotSupportedException();
-    }
-}
-
-internal class ReaderStreamWrapper : BaseStreamWrapper
-{
-    public ReaderStreamWrapper(Stream readStream) : base(readStream)
-    {
-        if (!Stream.CanRead)
-        {
-            throw new NotSupportedException("Wrapper works only with CanWrite streams");
-        }
-    }
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        return Stream.Read(buffer, offset, count);
-    }
-
-    public override bool CanRead => true;
-    public override bool CanWrite => false;
-}
+namespace TcfBackup.Managers.Gpg;
 
 public class GpgEncryptionManager : IEncryptionManager
 {
-    private record GpgContext(Context Context, Key Key) : IDisposable
+    private class GpgContext : IDisposable
     {
+        private readonly IFileSystem _fs;
+        
+        public Context Context { get; }
+        public Key Key { get; }
+        
+        public GpgContext(IFileSystem fs, Context context, Key key)
+        {
+            _fs = fs;
+            Context = context;
+            Key = key;
+        }
+        
         public void Dispose()
         {
+            var homedir = Context.EngineInfo.HomeDir;
+            
             Context.Dispose();
             Key.Dispose();
+            
+            _fs.Directory.Delete(homedir);
         }
     }
 
@@ -136,7 +74,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
         if (context.Protocol != Protocol.OpenPGP)
         {
-            context.SetEngineInfo(Protocol.OpenPGP, null, null);
+            context.SetEngineInfo(Protocol.OpenPGP, null, _fs.Directory.CreateTempDir());
         }
 
         if (!string.IsNullOrEmpty(_password))
@@ -149,7 +87,9 @@ public class GpgEncryptionManager : IEncryptionManager
             });
         }
 
-        return new GpgContext(context, _getKey(context));
+        context.Armor = false;
+        
+        return new GpgContext(_fs, context, _getKey(context));
     }
 
     public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFileSystem fs, string keyFile, string? password = null)
@@ -185,36 +125,25 @@ public class GpgEncryptionManager : IEncryptionManager
         using var srcStream = new GpgmeStreamData(srcStreamWrapper);
         using var dstStream = new GpgmeStreamData(dstStreamWrapper);
 
-        gpgContext.Context.Armor = false;
-
-        // ReSharper disable once AccessToDisposedClosure
-        using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
-
-        _logger.Information("Encryption of stream...");
+        _logger.Information("Encryption of the stream...");
         try
         {
             gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
         }
         catch (Exception e)
         {
-            if (srcStream.LastCallbackException == null && dstStream.LastCallbackException == null)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var exceptions = new[] { srcStream.LastCallbackException, dstStream.LastCallbackException }
+                .Where(exc => exc != null)
+                .ToArray();
+
+            if (exceptions.Length == 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 throw;
             }
 
-            var innerException = new List<Exception> { e };
-            if (srcStream.LastCallbackException != null)
-            {
-                innerException.Add(srcStream.LastCallbackException);
-            }
-
-            if (dstStream.LastCallbackException != null)
-            {
-                innerException.Add(dstStream.LastCallbackException);
-            }
-
-            throw new AggregateException(innerException);
+            throw new AggregateException(exceptions.Prepend(e));
         }
     }
 
@@ -235,9 +164,6 @@ public class GpgEncryptionManager : IEncryptionManager
         using var srcStream = new GpgmeStreamData(srcRawStream);
         using var dstRawStream = _fs.File.Open(dst, FileMode.Create, FileAccess.Write);
         using var dstStream = new GpgmeStreamData(dstRawStream);
-
-        // ReSharper disable once AccessToDisposedClosure
-        using var ctRegister = cancellationToken.Register(() => gpgContext.Dispose());
 
         _logger.Information("Decryption of file {Source} to {Target}...", src, dst);
         try

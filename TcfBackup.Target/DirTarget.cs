@@ -41,7 +41,6 @@ public class DirTarget : ITarget
     private readonly IFileSystem _filesystem;
     private readonly bool _overwrite;
 
-    public bool IsFilesystemTarget => true;
     public string Scheme => TargetSchemes.Filesystem;
     public string Directory { get; }
 

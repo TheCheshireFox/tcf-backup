@@ -17,6 +17,8 @@ public interface IFileSystemDirectory
     bool Exists(string? path);
     void Create(string path);
     void Delete(string path, bool recursive = true);
+
+    string CreateTempDir();
     
     IEnumerable<string> GetFiles(string path, bool recursive = true, bool sameFilesystem = true, bool skipAccessDenied = false, bool followSymlinks = false);
 }

@@ -85,23 +85,14 @@ public class ActionContextExecutor
 
     public async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        for (var i = 0; i < _actionExecutors.Count; i++)
+        foreach (var executor in _actionExecutors)
         {
-            void ThrowIfLast()
-            {
-                if (i == _actionExecutors.Count - 1)
-                {
-                    throw new Exception("Unable to find any source");
-                }
-            }
-            
-            var executor = _actionExecutors[i];
             if (await executor.ExecAsync(_actionContext, cancellationToken))
             {
                 return;
             }
-            
-            ThrowIfLast();
         }
+
+        throw new Exception("Unable to find any source");
     }
 }

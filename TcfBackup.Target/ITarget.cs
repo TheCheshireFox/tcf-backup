@@ -4,7 +4,6 @@ namespace TcfBackup.Target;
 
 public interface ITarget
 {
-    bool IsFilesystemTarget { get; }
     string Scheme { get; }
     string Directory { get; }
     

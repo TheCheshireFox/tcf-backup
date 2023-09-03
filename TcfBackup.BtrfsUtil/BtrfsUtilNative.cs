@@ -32,7 +32,7 @@ internal unsafe struct BtrfsSubvolumeInfo
 }
 
 [SuppressMessage("ReSharper", "InconsistentNaming")]
-[SuppressMessage("ReSharper", "UnusedMember.Local")]
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 public enum BtrfsUtilError
 {
     OK,
@@ -65,7 +65,7 @@ public enum BtrfsUtilError
 };
 
 [Flags]
-[SuppressMessage("ReSharper", "UnusedMember.Local")]
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 internal enum CreateSnapshotFlags
 {
     None = 0,
@@ -74,24 +74,28 @@ internal enum CreateSnapshotFlags
 }
 
 [Flags]
-[SuppressMessage("ReSharper", "UnusedMember.Local")]
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 internal enum DeleteSnapshotFlags
 {
     None = 0,
     Recursive = 1 << 0
 }
 
-internal static class BtrfsUtilNative
+internal static partial class BtrfsUtilNative
 {
-    [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    public static extern BtrfsUtilError btrfs_util_is_subvolume(string path);
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    public static partial BtrfsUtilError btrfs_util_is_subvolume(string path);
 
-    [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    public static extern BtrfsUtilError btrfs_util_subvolume_info(string path, long id, out BtrfsSubvolumeInfo subvolumeInfo);
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    public static partial BtrfsUtilError btrfs_util_subvolume_info(string path, long id, out BtrfsSubvolumeInfo subvolumeInfo);
 
-    [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    public static extern BtrfsUtilError btrfs_util_create_snapshot(string source, string path, CreateSnapshotFlags flags, nint unused, nint qgroupInherit);
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    public static partial BtrfsUtilError btrfs_util_create_snapshot(string source, string path, CreateSnapshotFlags flags, nint unused, nint qgroupInherit);
 
-    [DllImport("btrfsutil", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    public static extern BtrfsUtilError btrfs_util_delete_subvolume(string path, DeleteSnapshotFlags flags);
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    public static partial BtrfsUtilError btrfs_util_delete_subvolume(string path, DeleteSnapshotFlags flags);
 }

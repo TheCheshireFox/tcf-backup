@@ -22,7 +22,7 @@ public class LxdClient
     private static HttpClient ConnectUnixStream(string path) =>
         new(new SocketsHttpHandler
         {
-            ConnectCallback = async (context, token) =>
+            ConnectCallback = async (_, token) =>
             {
                 var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
                 var endpoint = new UnixDomainSocketEndPoint(GetUriWithoutScheme(path));

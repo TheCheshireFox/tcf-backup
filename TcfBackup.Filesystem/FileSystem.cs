@@ -20,6 +20,13 @@ public class FileSystemFile : IFileSystemFile
 
 public class FileSystemDirectory : IFileSystemDirectory
 {
+    private readonly IFileSystem _fs;
+
+    public FileSystemDirectory(IFileSystem fs)
+    {
+        _fs = fs;
+    }
+
     private static IEnumerable<string> GetMountPoints()
     {
         return File.ReadLines("/proc/mounts")
@@ -33,6 +40,21 @@ public class FileSystemDirectory : IFileSystemDirectory
     public void Create(string path) => Directory.CreateDirectory(path);
 
     public void Delete(string path, bool recursive = true) => Directory.Delete(path, recursive);
+    
+    public string CreateTempDir()
+    {
+        while (true)
+        {
+            var path = Path.Combine(_fs.GetTempPath(), $"tmp{Random.Shared.Next():D10}");
+            if (Directory.Exists(path))
+            {
+                continue;
+            }
+
+            Directory.CreateDirectory(path);
+            return path;
+        }
+    }
 
     public IEnumerable<string> GetFiles(string path, bool recursive = true, bool sameFilesystem = true, bool skipAccessDenied = false, bool followSymlinks = false)
     {
@@ -73,10 +95,12 @@ public class FileSystem : IFileSystem
     public FileSystem(string? tmpDirectory)
     {
         _tmpDirectory = tmpDirectory;
+        Directory = new FileSystemDirectory(this);
     }
 
     public IFileSystemFile File { get; } = new FileSystemFile();
-    public IFileSystemDirectory Directory { get; } = new FileSystemDirectory();
+    public IFileSystemDirectory Directory { get; }
+    
     public string GetTempPath() => _tmpDirectory ?? Path.GetTempPath();
     public string GetTempFileName()
     {

@@ -13,7 +13,6 @@ public class GDriveTarget : ITarget
     private readonly string? _directory;
     private readonly string? _directoryId;
 
-    public bool IsFilesystemTarget => false;
     public string Scheme => TargetSchemes.GDrive;
     public string Directory { get; }
 

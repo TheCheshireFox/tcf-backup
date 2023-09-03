@@ -66,17 +66,15 @@ public abstract class LibArchiveWriterBase : IDisposable
             switch (LibArchiveNativeWrapper.archive_entry_filetype(_entry))
             {
                 case FileType.AE_IFSOCK:
-                    OnLog?.Invoke(LogLevel.Error, $"{path} Socket not supported");
+                    OnLog?.Invoke(LogLevel.Error, $"{path}: socket not supported");
                     return;
-                default:
-                    break;
             }
 
             WriteEntryHeader();
 
             if (LibArchiveNativeWrapper.archive_entry_size_is_set(_entry) == 0)
             {
-                throw new LibArchiveException($"Size wasn't set for {path}");
+                throw new LibArchiveException($"{path}: size wasn't set");
             }
 
             if (LibArchiveNativeWrapper.archive_entry_size(_entry) == 0)

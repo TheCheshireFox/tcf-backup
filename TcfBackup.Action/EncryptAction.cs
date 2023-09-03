@@ -39,7 +39,7 @@ public class EncryptAction : IAction
         var files = source.GetFiles().ToList();
         if (files.Count == 1)
         {
-            return ApplyAsync(new FileStreamSource(_filesystem, (FileStream)_filesystem.File.OpenRead(files[0].Path), false), actionContext, cancellationToken);
+            return ApplyAsync(new StreamSource(_filesystem.File.OpenRead(files[0].Path), Path.GetFileName(files[0].Path)), actionContext, cancellationToken);
         }
         
         _logger.Information("Start encryption");
