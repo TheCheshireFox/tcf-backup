@@ -12,6 +12,7 @@ using TcfBackup.Extensions.Configuration;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Managers.Gpg;
+using TcfBackup.Shared.ProgressLogger;
 using TcfBackup.Source;
 using TcfBackup.Target;
 
@@ -32,10 +33,12 @@ public class BackupConfigFactory : IFactory
     {
         { TargetType.Dir, typeof(DirectoryTargetOptions) },
         { TargetType.GDrive, typeof(GDriveTargetOptions) },
+        { TargetType.Ssh, typeof(SshTargetOptions) },
     };
 
     private readonly IConfiguration _config;
     private readonly ILogger _logger;
+    private readonly IProgressLoggerFactory _progressLoggerFactory;
     private readonly IFileSystem _fs;
     private readonly IGDriveAdapter _gDriveAdapter;
 
@@ -80,7 +83,7 @@ public class BackupConfigFactory : IFactory
 
     private ILxdManager CreateLxdManager(LxdSourceOptions opts)
     {
-        return new LxdManager(_logger, opts.Address);
+        return new LxdManager(_logger, _progressLoggerFactory, opts.Address);
     }
 
     private ICompressionManager CreateTarCompressionManager(IConfiguration configurationSection)
@@ -91,7 +94,7 @@ public class BackupConfigFactory : IFactory
             TarCompressor.Gzip => CompressAlgorithm.Gzip,
             TarCompressor.Xz => CompressAlgorithm.Xz,
             TarCompressor.BZip2 => CompressAlgorithm.BZip2,
-            TarCompressor.None or _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
+            _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
         };
 
         var tarOptions = configurationSection.Get<TarOptions>() ?? new TarOptions();
@@ -106,6 +109,11 @@ public class BackupConfigFactory : IFactory
         };
 
         return new CompressionManager(_logger, factory, tarCompressionAlgorithm);
+    }
+
+    private ISshManager CreateSshManager(SshTargetOptions opts)
+    {
+        return new SshManager(_logger, _progressLoggerFactory, opts.Host, opts.Username, opts.Port, opts.Password, opts.KeyFile);
     }
     
     private IAction CreateCompressAction(CompressActionOptions opts, IConfiguration configurationSection)
@@ -162,12 +170,14 @@ public class BackupConfigFactory : IFactory
     }
 
     public BackupConfigFactory(ILogger logger,
+        IProgressLoggerFactory progressLoggerFactory,
         IFileSystem fs,
         IGDriveAdapter gDriveAdapter,
         IConfiguration config)
     {
         _config = config;
         _logger = logger;
+        _progressLoggerFactory = progressLoggerFactory;
         _fs = fs;
         _gDriveAdapter = gDriveAdapter;
 
@@ -175,7 +185,7 @@ public class BackupConfigFactory : IFactory
         {
             throw new FormatException("Invalid configuration");
         }
-
+        
         if (!_config.ContainsKey("source")) throw new FormatException("Source not specified");
         if (!_config.ContainsKey("target")) throw new FormatException("Target not specified");
         if (!_config.ContainsKey("actions")) throw new FormatException("Actions not specified");
@@ -215,6 +225,7 @@ public class BackupConfigFactory : IFactory
         {
             DirectoryTargetOptions dirOpts => new DirTarget(_logger, _fs, dirOpts.Path, dirOpts.Overwrite),
             GDriveTargetOptions gDriveOpts => new GDriveTarget(_logger, _gDriveAdapter, _fs, gDriveOpts.Path),
+            SshTargetOptions sshTargetOpts => new SshTarget(_logger, _fs, CreateSshManager(sshTargetOpts), sshTargetOpts.Path, sshTargetOpts.Overwrite),
             _ => throw new NotSupportedException($"Target {target.Type} not supported")
         };
     }

@@ -26,7 +26,13 @@ public class BtrfsManager : IBtrfsManager
         var targetInfo = _btrfsUtil.GetSubvolumeInfo(targetDir);
         if (targetInfo.ParentUuid == Guid.Empty)
         {
-            throw new Exception($"Subvolume {targetDir} is not snapshot");
+            if (_fs.Directory.GetFiles(targetDir, false).Any())
+            {
+                throw new Exception($"Subvolume {targetDir} is not snapshot");
+            }
+            
+            _fs.Directory.Delete(targetDir);
+            return;
         }
         
         var subvolInfo = _btrfsUtil.GetSubvolumeInfo(subvolume);

@@ -15,6 +15,7 @@ using Google.Apis.Util.Store;
 using Serilog;
 using TcfBackup.Filesystem;
 using TcfBackup.Shared;
+using TcfBackup.Shared.ProgressLogger;
 
 namespace TcfBackup;
 
@@ -65,6 +66,7 @@ public class GDriveAdapter : IGDriveAdapter
     private static readonly string[] s_scopes = { DriveService.Scope.DriveFile };
 
     private readonly ILogger _logger;
+    private readonly IProgressLoggerFactory _progressLoggerFactory;
     private Lazy<DriveService> _driveService = new(() => Authenticate(new ExceptionCodeReceiver()));
 
     private static DriveService Authenticate(ICodeReceiver codeReceiver)
@@ -153,9 +155,10 @@ public class GDriveAdapter : IGDriveAdapter
         return file;
     }
 
-    public GDriveAdapter(ILogger logger, IFileSystem fs)
+    public GDriveAdapter(ILogger logger, IProgressLoggerFactory progressLoggerFactory, IFileSystem fs)
     {
         _logger = logger.ForContextShort<GDriveAdapter>();
+        _progressLoggerFactory = progressLoggerFactory;
         fs.Directory.Create(TokensDirectory);
     }
 
@@ -208,23 +211,7 @@ public class GDriveAdapter : IGDriveAdapter
             Parents = parentDirectoryId != null ? new List<string> { parentDirectoryId } : null
         }, stream, "");
 
-        const long kilobyte = 1024;
-        long threshold;
-        try
-        {
-            threshold = stream.Length switch
-            {
-                < 1 * 1024 * kilobyte => 100 * kilobyte,
-                < 100 * 1024 * kilobyte => 1 * 1024 * kilobyte,
-                _ => 10 * 1024 * kilobyte
-            };
-        }
-        catch (Exception)
-        {
-            threshold = 100 * kilobyte;
-        }
-
-        var progressLogger = new ProgressLogger(threshold);
+        var progressLogger = _progressLoggerFactory.Create(ProgressLogger.GetThreshold(stream));
         progressLogger.OnProgress += bytesSent => _logger.Information("Transferred: {Total}", StringExtensions.FormatBytes(bytesSent));
         cmu.ProgressChanged += uploadProgress => progressLogger.Set(uploadProgress.BytesSent);
 

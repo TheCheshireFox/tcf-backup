@@ -6,7 +6,8 @@ public enum TargetType
 {
     None,
     Dir,
-    GDrive
+    GDrive,
+    Ssh
 }
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]

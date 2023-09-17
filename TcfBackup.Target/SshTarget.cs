@@ -1,32 +1,36 @@
 using Serilog;
 using TcfBackup.Filesystem;
+using TcfBackup.Managers;
 using TcfBackup.Shared;
 using TcfBackup.Source;
 
 namespace TcfBackup.Target;
 
-public class DirTarget : ITarget
+public class SshTarget : ITarget
 {
     private readonly ILogger _logger;
     private readonly IFileSystem _filesystem;
+    private readonly ISshManager _sshManager;
     private readonly bool _overwrite;
 
-    public string Scheme => TargetSchemes.Filesystem;
+    public string Scheme => TargetSchemes.Ssh;
     public string Directory { get; }
 
-    public DirTarget(ILogger logger, IFileSystem filesystem, string dir, bool overwrite)
+    public SshTarget(ILogger logger, IFileSystem filesystem, ISshManager sshManager, string dir, bool overwrite)
     {
-        _logger = logger.ForContextShort<DirTarget>();
+        _logger = logger.ForContextShort<SshTarget>();
         _filesystem = filesystem;
+        _sshManager = sshManager;
         _overwrite = overwrite;
+
+        Directory = dir;
         
-        _filesystem.Directory.Create(Directory = dir);
         _logger.Information("Target directory {Dir}...", Directory);
     }
     
     public IEnumerable<string> Apply(IFileListSource source, CancellationToken cancellationToken)
     {
-        using var filesRemover = new FilesRemover(_filesystem);
+        using var filesRemover = CreateFilesRemover(cancellationToken);
         
         var result = new List<string>();
         foreach (var file in source.GetFiles())
@@ -35,7 +39,9 @@ public class DirTarget : ITarget
 
             var dst = Path.Combine(Directory, Path.GetFileName(file.Path));
             _logger.Information("{Src} -> {Dst}...", file.Path, dst);
-            file.Move(dst, _overwrite);
+
+            using var stream = _filesystem.File.OpenRead(file.Path);
+            _sshManager.Upload(stream, dst, _overwrite, cancellationToken);
             
             filesRemover.Add(dst);
             result.Add(dst);
@@ -52,16 +58,23 @@ public class DirTarget : ITarget
         cancellationToken.ThrowIfCancellationRequested();
         
         var dst = Path.Combine(Directory, source.Name);
-        _logger.Information("Writing {Dst}...", dst);
+        _logger.Information("Writing {Src} to {Dst}...", source.Name, dst);
 
-        using var filesRemover = new FilesRemover(_filesystem, dst);
+        using var filesRemover = CreateFilesRemover(cancellationToken);
+        filesRemover.Add(dst);
         
-        using var fileStream = _filesystem.File.Open(dst, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
-        source.GetStream().CopyToAsync(fileStream, 1024 * 1024, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+        _sshManager.Upload(source.GetStream(), dst, _overwrite, cancellationToken);
         
         _logger.Information("Complete");
         filesRemover.Commit();
 
         return new[] { dst };
+    }
+
+    private FilesRemover CreateFilesRemover(CancellationToken cancellationToken)
+    {
+        return new FilesRemover(f => _sshManager.Delete(f, cancellationToken.IsCancellationRequested
+            ? CancellationToken.None
+            : cancellationToken));
     }
 }

@@ -2,6 +2,7 @@ using Serilog;
 using TcfBackup.LxdClient;
 using TcfBackup.LxdClient.Operation;
 using TcfBackup.Shared;
+using TcfBackup.Shared.ProgressLogger;
 
 namespace TcfBackup.Managers;
 
@@ -32,10 +33,12 @@ public class LxdManager : ILxdManager
     }
     
     private readonly ILogger _logger;
+    private readonly IProgressLoggerFactory _progressLoggerFactory;
     private readonly LxdClient.LxdClient _lxdClient;
-    public LxdManager(ILogger logger, string address)
+    public LxdManager(ILogger logger, IProgressLoggerFactory progressLoggerFactory, string address)
     {
         _logger = logger.ForContextShort<LxdManager>();
+        _progressLoggerFactory = progressLoggerFactory;
         _lxdClient = new LxdClient.LxdClient(address);
         
         _lxdClient.CheckAvailable();
@@ -73,7 +76,7 @@ public class LxdManager : ILxdManager
         }
 
         var buffer = new byte[10 * 1024 * 1024];
-        var progressLogger = new ProgressLogger(buffer.Length);
+        var progressLogger = _progressLoggerFactory.Create(buffer.Length);
         progressLogger.OnProgress += bytes => _logger.Information("Transferred: {Bytes}", StringExtensions.FormatBytes(bytes));
         
         await using var backupStream = await _lxdClient.DownloadBackup(operation);
