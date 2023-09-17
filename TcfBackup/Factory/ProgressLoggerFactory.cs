@@ -7,7 +7,10 @@ public class EmptyProgressLoggerFactory : IProgressLoggerFactory
 {
     private class EmptyProgressLogger : IProgressLogger
     {
+#pragma warning disable CS0067
         public event Action<long>? OnProgress;
+#pragma warning restore CS0067
+
         public void Set(long value)
         {
         }
