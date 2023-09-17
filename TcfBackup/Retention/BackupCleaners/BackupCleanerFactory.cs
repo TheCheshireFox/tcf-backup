@@ -15,7 +15,8 @@ public class BackupCleanerFactory : IBackupCleanerFactory
         _cleanersByScheme = new Dictionary<string, Lazy<IBackupCleaner>>
         {
             { TargetSchemes.Filesystem, new Lazy<IBackupCleaner>(() => new FilesystemBackupCleaner(fs), LazyThreadSafetyMode.ExecutionAndPublication) },
-            { TargetSchemes.GDrive, new Lazy<IBackupCleaner>(() => new GDriveBackupCleaner(gDriveAdapter), LazyThreadSafetyMode.ExecutionAndPublication) }
+            { TargetSchemes.GDrive, new Lazy<IBackupCleaner>(() => new GDriveBackupCleaner(gDriveAdapter), LazyThreadSafetyMode.ExecutionAndPublication) },
+            { TargetSchemes.Ssh, new Lazy<IBackupCleaner>(() => throw new NotSupportedException(), LazyThreadSafetyMode.ExecutionAndPublication) },
         };
     }
 

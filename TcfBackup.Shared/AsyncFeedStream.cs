@@ -90,7 +90,7 @@ public class AsyncFeedStream : Stream
     public override bool CanRead => true;
     public override bool CanSeek => false;
     public override bool CanWrite => true;
-    public override long Length => _stream.Length;
+    public override long Length => throw new NotSupportedException();
 
     public override long Position
     {

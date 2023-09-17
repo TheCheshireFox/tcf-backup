@@ -59,6 +59,22 @@ public class SshManager : ISshManager, IDisposable
         }
     }
 
+    public bool Exists(string path, CancellationToken cancellationToken)
+    {
+        Connect();
+        using var ctr = cancellationToken.Register(() => _sftpClient.Disconnect());
+
+        try
+        {
+            return _sftpClient.Exists(path);
+        }
+        catch (Exception)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         _sftpClient.Dispose();
