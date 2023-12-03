@@ -43,13 +43,13 @@ public class ActionContextMock : IActionContext
         if (_result == null)
         {
             Assert.Fail("Result is not set.");
-            return default;
+            return default!;
         }
         
         if (_result is not T typedResult)
         {
             Assert.Fail($"Not a {typeof(T).Name}");
-            return default;
+            return default!;
         }
 
         return typedResult;
