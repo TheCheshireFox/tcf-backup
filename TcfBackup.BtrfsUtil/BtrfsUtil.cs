@@ -2,15 +2,12 @@
 
 namespace TcfBackup.BtrfsUtil;
 
-public class BtrfsException : Exception
+public class BtrfsException(string message, BtrfsUtilError? error = null)
+    : Exception(error != null 
+        ? $"{message} ({error})"
+        : message)
 {
-    public BtrfsUtilError? Error { get; }
-
-    public BtrfsException(string message, BtrfsUtilError? error = null)
-        : base(message)
-    {
-        Error = error;
-    }
+    public BtrfsUtilError? Error { get; } = error;
 }
 
 public class SubvolumeInfo
