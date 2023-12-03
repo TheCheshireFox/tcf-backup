@@ -83,19 +83,19 @@ internal enum DeleteSnapshotFlags
 
 internal static partial class BtrfsUtilNative
 {
-    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     public static partial BtrfsUtilError btrfs_util_is_subvolume(string path);
 
-    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     public static partial BtrfsUtilError btrfs_util_subvolume_info(string path, long id, out BtrfsSubvolumeInfo subvolumeInfo);
 
-    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     public static partial BtrfsUtilError btrfs_util_create_snapshot(string source, string path, CreateSnapshotFlags flags, nint unused, nint qgroupInherit);
 
-    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport("btrfsutil", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = new [] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     public static partial BtrfsUtilError btrfs_util_delete_subvolume(string path, DeleteSnapshotFlags flags);
 }
