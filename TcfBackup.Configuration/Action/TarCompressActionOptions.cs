@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace TcfBackup.Configuration.Action;
 
 public class TarOptions
@@ -19,23 +17,19 @@ public enum TarCompressor
 
 public interface ICompressorOptions
 {
-    
 }
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class BZip2Options : ICompressorOptions
 {
     public int Level { get; set; }
 }
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class XzOptions : ICompressorOptions
 {
     public int Level { get; set; }
     public uint? Threads { get; init; }
 }
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class GZipOptions : ICompressorOptions
 {
     public int Level { get; set; } = 6;

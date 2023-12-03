@@ -1,9 +1,8 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
+
 
 namespace TcfBackup.Configuration.Action;
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class FilterActionOptions : ActionOptions
 {
     public bool FollowSymlinks { get; set; }

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using TcfBackup.Action;
@@ -163,7 +160,7 @@ public class BackupConfigFactory : IFactory
             {
                 EncryptionEngine.Openssl => typeof(OpensslEncryptionActionOptions),
                 EncryptionEngine.Gpg => typeof(GpgEncryptionActionOptions),
-                _ => throw new NotSupportedException($"Encryption engine {cfg.GetValue<EncryptionEngine>("engine")} not supported")
+                var notSupportedEngine => throw new NotSupportedException($"Encryption engine {notSupportedEngine} not supported")
             },
             var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction} not supported")
         };

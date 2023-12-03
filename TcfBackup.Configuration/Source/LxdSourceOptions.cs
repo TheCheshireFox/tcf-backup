@@ -1,9 +1,8 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
+
 
 namespace TcfBackup.Configuration.Source;
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class LxdSourceOptions : SourceOptions
 {
     public string Address { get; set; } = "unix:///var/lib/lxd/unix.socket";

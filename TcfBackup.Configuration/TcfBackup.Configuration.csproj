@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsTrimmable>false</IsTrimmable>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>arm64;x64</Platforms>
+    </PropertyGroup>
+
+</Project>

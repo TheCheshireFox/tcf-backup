@@ -1,5 +1,5 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
+
 
 namespace TcfBackup.Configuration.Global;
 
@@ -8,7 +8,6 @@ public enum LoggingParts
     Transfer
 }
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class GlobalOptions
 {
     public string Name { get; set; } = null!;
