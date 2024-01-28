@@ -1,4 +1,3 @@
-using System;
 using TcfBackup.Shared.ProgressLogger;
 
 namespace TcfBackup.Factory;

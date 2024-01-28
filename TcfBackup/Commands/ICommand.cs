@@ -1,5 +1,3 @@
-using System;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using TcfBackup.CommandLine.Options;
 

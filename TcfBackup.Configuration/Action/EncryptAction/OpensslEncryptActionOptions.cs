@@ -1,6 +1,6 @@
-namespace TcfBackup.Configuration.Action;
+namespace TcfBackup.Configuration.Action.EncryptAction;
 
-public class OpensslEncryptionActionOptions : EncryptionActionOptions
+public class OpensslEncryptActionOptions : EncryptActionOptions
 {
     public string Cipher { get; set; } = string.Empty;
     public bool Salt { get; set; }

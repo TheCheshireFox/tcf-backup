@@ -10,5 +10,8 @@ public enum TargetType
 
 public class TargetOptions
 {
+    [Variant<DirectoryTargetOptions>(TargetType.Dir)]
+    [Variant<GDriveTargetOptions>(TargetType.GDrive)]
+    [Variant<SshTargetOptions>(TargetType.Ssh)]
     public TargetType Type { get; set; }
 }

@@ -1,8 +1,4 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -13,6 +9,7 @@ using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
 using TcfBackup.Extensions.Configuration;
 using TcfBackup.Factory;
+using TcfBackup.Factory.CompressionManager;
 using TcfBackup.Filesystem;
 using TcfBackup.Managers;
 using TcfBackup.Retention;
@@ -65,6 +62,7 @@ public abstract class ConfigBasedCommandBase<T> : ICommand<T>
             .Configure(globalConfig, cfg => BindGlobalOptions(cfg, Path.GetFileNameWithoutExtension(_configurationFile)))
             .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
             .Configure<Configuration.Global.RetentionOptions>(globalConfig.GetSection(nameof(GlobalOptions.Retention), StringComparison.InvariantCultureIgnoreCase))
+            .AddSingleton(config)
             .AddSingleton<IProgressLoggerFactory>(sp => GetProgressLoggerFactory(sp.GetRequiredService<IOptions<GlobalOptions>>()))
             .AddTransientFromFactory<LoggerFactory, ILogger>()
             .AddSingletonFromFactory<FilesystemFactory, IFileSystem>()
@@ -72,7 +70,11 @@ public abstract class ConfigBasedCommandBase<T> : ICommand<T>
             .AddSingleton<ILxdManager, LxdManager>()
             .AddSingleton<ICompressionManager, CompressionManager>()
             .AddSingleton<IGDriveAdapter, GDriveAdapter>()
-            .AddSingleton<IConfiguration>(config)
+            .AddSingleton<IBtrfsManagerFactory, BtrfsManagerFactory>()
+            .AddSingleton<IEncryptionManagerFactory, EncryptionManagerFactory>()
+            .AddSingleton<ILxdManagerFactory, LxdManagerFactory>()
+            .AddSingleton<ISshManagerFactory, SshManagerFactory>()
+            .AddSingleton<ICompressionManagerFactory, CompressionManagerFactory>()
             .AddSingleton<IFactory, BackupConfigFactory>()
             .AddSingleton<IBackupRepository, BackupRepository>(sp => new BackupRepository(sp.GetRequiredService<IFileSystem>(), AppEnvironment.TcfDatabaseDirectory))
             .AddSingleton<IBackupCleanerFactory, BackupCleanerFactory>()

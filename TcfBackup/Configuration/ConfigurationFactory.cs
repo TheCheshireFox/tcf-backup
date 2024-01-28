@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -20,7 +16,7 @@ public static class ConfigurationFactory
             { ".json", LoadJson }
         };
 
-    private static readonly string[] s_configurationSearchPaths = { "./", AppEnvironment.TcfConfigDirectory };
+    private static readonly string[] s_configurationSearchPaths = ["./", AppEnvironment.TcfConfigDirectory];
 
     private static bool TryFindConfigurationFileWithSupportedExtensions(string path, out string result)
     {

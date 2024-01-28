@@ -1,4 +1,4 @@
-namespace TcfBackup.Configuration.Action;
+namespace TcfBackup.Configuration.Action.CompressAction;
 
 public enum CompressEngine
 {
@@ -7,6 +7,7 @@ public enum CompressEngine
 
 public class CompressActionOptions : ActionOptions
 {
+    [Variant<TarCompressActionOptions>(CompressEngine.Tar)]
     public CompressEngine Engine { get; set; }
     public string? Name { get; set; }
     public bool FollowSymlinks { get; set; }

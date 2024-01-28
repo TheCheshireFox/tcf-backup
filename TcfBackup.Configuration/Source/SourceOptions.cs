@@ -10,5 +10,8 @@ public enum SourceType
 
 public class SourceOptions
 {
+    [Variant<BtrfsSourceOptions>(SourceType.Btrfs)]
+    [Variant<DirectorySourceOptions>(SourceType.Directory)]
+    [Variant<LxdSourceOptions>(SourceType.Lxd)]
     public SourceType Type { get; set; }
 }

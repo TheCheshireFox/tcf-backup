@@ -1,17 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Configuration;
 using Serilog;
 using TcfBackup.Action;
 using TcfBackup.Configuration.Action;
+using TcfBackup.Configuration.Action.CompressAction;
+using TcfBackup.Configuration.Action.EncryptAction;
 using TcfBackup.Configuration.Source;
 using TcfBackup.Configuration.Target;
-using TcfBackup.Extensions.Configuration;
+using TcfBackup.Factory.CompressionManager;
 using TcfBackup.Filesystem;
-using TcfBackup.Managers;
-using TcfBackup.Managers.Gpg;
-using TcfBackup.Shared.ProgressLogger;
 using TcfBackup.Source;
 using TcfBackup.Target;
+using IConfigurationProvider = TcfBackup.Configuration.IConfigurationProvider;
 
 [module: UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Already handled by Microsoft.Extensions.Configuration")]
 
@@ -19,114 +18,24 @@ namespace TcfBackup.Factory;
 
 public class BackupConfigFactory : IFactory
 {
-    private static readonly Dictionary<SourceType, Type> s_sourceTypeMapping = new()
-    {
-        { SourceType.Btrfs, typeof(BtrfsSourceOptions) },
-        { SourceType.Directory, typeof(DirectorySourceOptions) },
-        { SourceType.Lxd, typeof(LxdSourceOptions) },
-    };
-
-    private static readonly Dictionary<TargetType, Type> s_targetTypeMapping = new()
-    {
-        { TargetType.Dir, typeof(DirectoryTargetOptions) },
-        { TargetType.GDrive, typeof(GDriveTargetOptions) },
-        { TargetType.Ssh, typeof(SshTargetOptions) },
-    };
-
-    private readonly IConfiguration _config;
+    private readonly IConfigurationProvider _configurationProvider;
     private readonly ILogger _logger;
-    private readonly IProgressLoggerFactory _progressLoggerFactory;
     private readonly IFileSystem _fs;
     private readonly IGDriveAdapter _gDriveAdapter;
+    private readonly IEncryptionManagerFactory _encryptionManagerFactory;
+    private readonly ISshManagerFactory _sshManagerFactory;
+    private readonly IBtrfsManagerFactory _btrfsManagerFactory;
+    private readonly ILxdManagerFactory _lxdManagerFactory;
+    private readonly ICompressionManagerFactory _compressionManagerFactory;
 
-    private IEncryptionManager CreateGpgEncryptionManager(GpgEncryptionActionOptions opts)
+    private IAction CreateCompressAction(CompressActionOptions opts)
     {
-        if (string.IsNullOrEmpty(opts.KeyFile) && string.IsNullOrEmpty(opts.KeyId))
-        {
-            throw new FormatException("No keyfile or signature specified for encryption manager.");
-        }
-
-        if (!string.IsNullOrEmpty(opts.KeyFile) && !string.IsNullOrEmpty(opts.KeyId))
-        {
-            throw new FormatException("Both the keyfile and signature are specified. You can choose only one.");
-        }
-
-        if (!string.IsNullOrEmpty(opts.KeyFile))
-        {
-            return GpgEncryptionManager.CreateWithKeyFile(_logger, _fs, opts.KeyFile, opts.Password);
-        }
-
-        if (!string.IsNullOrEmpty(opts.KeyId))
-        {
-            return GpgEncryptionManager.CreateWithKeyId(_logger, _fs, opts.KeyId, opts.Password);
-        }
-
-        throw new NotSupportedException("Specified gpg configuration not supported");
+        return new CompressAction(_logger, _compressionManagerFactory.Create(opts), opts.Name);
     }
 
-    private IBtrfsManager CreateBtrfsManager()
+    private IAction CreateEncryptAction(EncryptActionOptions opts)
     {
-        return new BtrfsManager(_logger, _fs);
-    }
-
-    private IEncryptionManager CreateEncryptionManager(EncryptionActionOptions opts)
-    {
-        return opts switch
-        {
-            GpgEncryptionActionOptions gpgOpts => CreateGpgEncryptionManager(gpgOpts),
-            _ => throw new ArgumentOutOfRangeException(nameof(opts), opts, null)
-        };
-    }
-
-    private ILxdManager CreateLxdManager(LxdSourceOptions opts)
-    {
-        return new LxdManager(_logger, _progressLoggerFactory, opts.Address);
-    }
-
-    private ICompressionManager CreateTarCompressionManager(IConfiguration configurationSection)
-    {
-        var compressorType = configurationSection.GetValue<TarCompressor>("compressor");
-        var tarCompressionAlgorithm = compressorType switch
-        {
-            TarCompressor.Gzip => CompressAlgorithm.Gzip,
-            TarCompressor.Xz => CompressAlgorithm.Xz,
-            TarCompressor.BZip2 => CompressAlgorithm.BZip2,
-            _ => throw new NotSupportedException($"Compression algorithm {compressorType} not supported")
-        };
-
-        var tarOptions = configurationSection.Get<TarOptions>() ?? new TarOptions();
-        
-        var optionsSection = configurationSection.GetSection("options");
-        var factory = tarCompressionAlgorithm switch
-        {
-            CompressAlgorithm.Gzip => TarArchiverFactory.CreateGZip2(tarOptions, optionsSection.Get<GZipOptions?>()),
-            CompressAlgorithm.Xz => TarArchiverFactory.CreateXz(tarOptions, optionsSection.Get<XzOptions?>()),
-            CompressAlgorithm.BZip2 => TarArchiverFactory.CreateBZip(tarOptions, optionsSection.Get<BZip2Options?>()),
-            _ => throw new NotSupportedException($"Compression algorithm {tarCompressionAlgorithm} not supported")
-        };
-
-        return new CompressionManager(_logger, factory, tarCompressionAlgorithm);
-    }
-
-    private ISshManager CreateSshManager(SshTargetOptions opts)
-    {
-        return new SshManager(_logger, _progressLoggerFactory, opts.Host, opts.Username, opts.Port, opts.Password, opts.KeyFile);
-    }
-    
-    private IAction CreateCompressAction(CompressActionOptions opts, IConfiguration configurationSection)
-    {
-        var manager = opts.Engine switch
-        {
-            CompressEngine.Tar => CreateTarCompressionManager(configurationSection),
-            var notSupportedEngine => throw new NotSupportedException($"Compression engine {notSupportedEngine} not supported")
-        };
-
-        return new CompressAction(_logger, manager, opts.Name);
-    }
-
-    private IAction CreateEncryptAction(EncryptionActionOptions opts)
-    {
-        return new EncryptAction(_logger, _fs, CreateEncryptionManager(opts));
+        return new EncryptAction(_logger, _fs, _encryptionManagerFactory.Create(opts));
     }
 
     private IAction CreteFilterAction(FilterActionOptions opts)
@@ -149,81 +58,58 @@ public class BackupConfigFactory : IFactory
         return new RenameAction(_logger, _fs, opts.Template, opts.Overwrite);
     }
 
-    private static Type GetActionOptionsType(IConfiguration cfg)
-    {
-        return cfg.GetValue<ActionType>("type") switch
-        {
-            ActionType.Compress => typeof(CompressActionOptions),
-            ActionType.Filter => typeof(FilterActionOptions),
-            ActionType.Rename => typeof(RenameActionOptions),
-            ActionType.Encrypt => cfg.GetValue<EncryptionEngine>("engine") switch
-            {
-                EncryptionEngine.Openssl => typeof(OpensslEncryptionActionOptions),
-                EncryptionEngine.Gpg => typeof(GpgEncryptionActionOptions),
-                var notSupportedEngine => throw new NotSupportedException($"Encryption engine {notSupportedEngine} not supported")
-            },
-            var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction} not supported")
-        };
-    }
-
     public BackupConfigFactory(ILogger logger,
-        IProgressLoggerFactory progressLoggerFactory,
         IFileSystem fs,
         IGDriveAdapter gDriveAdapter,
-        IConfiguration config)
+        IConfigurationProvider configurationProvider,
+        IEncryptionManagerFactory encryptionManagerFactory,
+        ISshManagerFactory sshManagerFactory,
+        IBtrfsManagerFactory btrfsManagerFactory,
+        ILxdManagerFactory lxdManagerFactory,
+        ICompressionManagerFactory compressionManagerFactory)
     {
-        _config = config;
+        _configurationProvider = configurationProvider;
+        _encryptionManagerFactory = encryptionManagerFactory;
+        _sshManagerFactory = sshManagerFactory;
+        _btrfsManagerFactory = btrfsManagerFactory;
+        _lxdManagerFactory = lxdManagerFactory;
+        _compressionManagerFactory = compressionManagerFactory;
         _logger = logger;
-        _progressLoggerFactory = progressLoggerFactory;
         _fs = fs;
         _gDriveAdapter = gDriveAdapter;
-
-        if (_config == null)
-        {
-            throw new FormatException("Invalid configuration");
-        }
-        
-        if (!_config.ContainsKey("source")) throw new FormatException("Source not specified");
-        if (!_config.ContainsKey("target")) throw new FormatException("Target not specified");
-        if (!_config.ContainsKey("actions")) throw new FormatException("Actions not specified");
     }
 
     public ISource GetSource()
     {
-        var source = (SourceOptions)_config.Get(cfg => s_sourceTypeMapping[cfg.GetValue<SourceType>("type")], "source");
-        return source switch
+        return _configurationProvider.GetSource() switch
         {
-            BtrfsSourceOptions btrfsOpts => new BtrfsSource(_logger, CreateBtrfsManager(), _fs, btrfsOpts.Subvolume,
-                btrfsOpts.SnapshotDir),
+            BtrfsSourceOptions btrfsOpts => new BtrfsSource(_logger, _btrfsManagerFactory.Create(), _fs, btrfsOpts.Subvolume, btrfsOpts.SnapshotDir),
             DirectorySourceOptions dirOpts => new DirSource(_logger, _fs, dirOpts.Path),
-            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, CreateLxdManager(lxdOpts), _fs, lxdOpts.Containers,
-                lxdOpts.IgnoreMissing),
-            _ => throw new NotSupportedException($"Source {source.Type} not supported")
+            LxdSourceOptions lxdOpts => new LxdSnapshotSource(_logger, _lxdManagerFactory.Create(lxdOpts), _fs, lxdOpts.Containers, lxdOpts.IgnoreMissing),
+            var unknown => throw new NotSupportedException($"Source {unknown.Type} not supported")
         };
     }
 
     public IEnumerable<IAction> GetActions()
     {
-        return _config.GetSection("actions").GetChildren().Select(s => (ActionOptions)s.Get(GetActionOptionsType) switch
+        return _configurationProvider.GetActions().Select(opts => opts switch
         {
-            CompressActionOptions compressOpts => CreateCompressAction(compressOpts, s),
-            EncryptionActionOptions encryptOpts => CreateEncryptAction(encryptOpts),
+            CompressActionOptions compressOpts => CreateCompressAction(compressOpts),
+            EncryptActionOptions encryptOpts => CreateEncryptAction(encryptOpts),
             FilterActionOptions filterOpts => CreteFilterAction(filterOpts),
             RenameActionOptions renameOpts => CreateRenameAction(renameOpts),
-            var notSupportedAction => throw new NotSupportedException($"Action {notSupportedAction.Type} not supported")
+            _ => throw new NotSupportedException($"Action {opts.Type} not supported")
         });
     }
 
     public ITarget GetTarget()
     {
-        var target = (TargetOptions)_config.Get(cfg => s_targetTypeMapping[cfg.GetValue<TargetType>("type")], "target");
-
-        return target switch
+        return _configurationProvider.GetTarget() switch
         {
             DirectoryTargetOptions dirOpts => new DirTarget(_logger, _fs, dirOpts.Path, dirOpts.Overwrite),
             GDriveTargetOptions gDriveOpts => new GDriveTarget(_logger, _gDriveAdapter, _fs, gDriveOpts.Path),
-            SshTargetOptions sshTargetOpts => new SshTarget(_logger, _fs, CreateSshManager(sshTargetOpts), sshTargetOpts.Path, sshTargetOpts.Overwrite),
-            _ => throw new NotSupportedException($"Target {target.Type} not supported")
+            SshTargetOptions sshTargetOpts => new SshTarget(_logger, _fs, _sshManagerFactory.Create(sshTargetOpts), sshTargetOpts.Path, sshTargetOpts.Overwrite),
+            var unknown => throw new NotSupportedException($"Target {unknown.Type} not supported")
         };
     }
 }

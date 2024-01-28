@@ -1,6 +1,3 @@
-using System;
-
-
 namespace TcfBackup.Configuration.Action;
 
 public class FilterActionOptions : ActionOptions

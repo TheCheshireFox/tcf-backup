@@ -1,6 +1,3 @@
-using System;
-
-
 namespace TcfBackup.Configuration.Global;
 
 public enum LoggingParts
