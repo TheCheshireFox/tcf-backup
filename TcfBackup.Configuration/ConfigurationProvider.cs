@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using TcfBackup.Configuration.Action;
@@ -48,7 +49,10 @@ public class ConfigurationProvider : IConfigurationProvider
             .Select(actionSection => (ActionOptions)Get(typeof(ActionOptions), actionSection, new ConfigurationState()));
     }
     
-    private static object Get(Type type, IConfiguration configuration, ConfigurationState state)
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Handled by DynamicallyAccessedMembers")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2067", Justification = "Handled by DynamicallyAccessedMembers, bad case of the Dictionary<object, Type>")]
+    private static object Get([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)]Type type,
+        IConfiguration configuration, ConfigurationState state)
     {
         var obj = configuration.Get(type);
         var props = type.GetProperties().ToDictionary(p => p.Name, p => p);

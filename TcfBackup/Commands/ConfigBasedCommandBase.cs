@@ -16,6 +16,8 @@ using TcfBackup.Retention;
 using TcfBackup.Retention.BackupCleaners;
 using TcfBackup.Shared;
 using TcfBackup.Shared.ProgressLogger;
+using ConfigurationProvider = TcfBackup.Configuration.ConfigurationProvider;
+using IConfigurationProvider = TcfBackup.Configuration.IConfigurationProvider;
 
 namespace TcfBackup.Commands;
 
@@ -63,6 +65,7 @@ public abstract class ConfigBasedCommandBase<T> : ICommand<T>
             .Configure<LoggerOptions>(loggerOpts => loggerOpts.Fill(opts))
             .Configure<Configuration.Global.RetentionOptions>(globalConfig.GetSection(nameof(GlobalOptions.Retention), StringComparison.InvariantCultureIgnoreCase))
             .AddSingleton(config)
+            .AddSingleton<IConfigurationProvider, ConfigurationProvider>()
             .AddSingleton<IProgressLoggerFactory>(sp => GetProgressLoggerFactory(sp.GetRequiredService<IOptions<GlobalOptions>>()))
             .AddTransientFromFactory<LoggerFactory, ILogger>()
             .AddSingletonFromFactory<FilesystemFactory, IFileSystem>()
