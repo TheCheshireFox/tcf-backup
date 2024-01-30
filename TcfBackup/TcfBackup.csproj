@@ -6,8 +6,8 @@
         <Configurations>Debug;Release</Configurations>
         <Platforms>x64;arm64</Platforms>
         <AssemblyName>tcf-backup</AssemblyName>
-        <AssemblyVersion>1.0.8</AssemblyVersion>
-        <FileVersion>1.0.8</FileVersion>
+        <AssemblyVersion>1.0.10</AssemblyVersion>
+        <FileVersion>1.0.10</FileVersion>
         <Nullable>enable</Nullable>
         <IsTrimmable>true</IsTrimmable>
         <TrimMode>partial</TrimMode>
