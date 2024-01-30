@@ -8,7 +8,9 @@ using Moq;
 using NUnit.Framework;
 using Serilog;
 using TcfBackup.BackupDatabase;
+using TcfBackup.Configuration;
 using TcfBackup.Configuration.Global;
+using TcfBackup.Factory;
 using TcfBackup.Filesystem;
 using TcfBackup.Retention;
 using TcfBackup.Retention.BackupCleaners;
@@ -135,13 +137,16 @@ public class RetentionManagerTests
     [TestCase(typeof(FilesystemRetentionCleanupTestCase))]
     [TestCase(typeof(GDriveRetentionCleanupTestCase))]
     [TestCase(typeof(OnlyMatchingNameRetentionCleanupTestCase))]
+    // TODO: ssh tests
     public async Task RetentionCleanupTest(Type testScheduleType)
     {
         var testCase = (IRetentionCleanupTestCase)Activator.CreateInstance(testScheduleType)!;
 
         var fs = new Mock<IFileSystem>(MockBehavior.Strict);
+        var configurationProvider = new Mock<IConfigurationProvider>(MockBehavior.Strict);
         var gDriveAdapter = new Mock<IGDriveAdapter>(MockBehavior.Strict);
-        var backupCleanerFactory = new BackupCleanerFactory(fs.Object, gDriveAdapter.Object);
+        var sshManagerFactory = new Mock<ISshManagerFactory>();
+        var backupCleanerFactory = new BackupCleanerFactory(fs.Object, gDriveAdapter.Object, configurationProvider.Object, sshManagerFactory.Object);
 
         PrepareCleanerDependencies(backupCleanerFactory, fs, gDriveAdapter, testCase);
 
