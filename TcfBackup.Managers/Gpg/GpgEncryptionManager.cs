@@ -27,83 +27,107 @@ public class GpgEncryptionManager : IEncryptionManager
             
             Context.Dispose();
             Key.Dispose();
+
+            if (homedir != null)
+            {
+                _fs.Directory.Delete(homedir);
+            }
+        }
+    }
+    
+    private abstract class GpgContextFactory(IFileSystem fs, string? password)
+    {
+        public GpgContext Create()
+        {
+            var context = CreateContext();
             
-            _fs.Directory.Delete(homedir);
+            if (!string.IsNullOrEmpty(password))
+            {
+                // ReSharper disable once RedundantAssignment
+                context.SetPassphraseFunction((Context _, PassphraseInfo _, ref char[] passphrase) =>
+                {
+                    passphrase = password.ToCharArray();
+                    return PassphraseResult.Success;
+                });
+            }
+
+            context.Armor = false;
+        
+            return new GpgContext(fs, context, GetKey(context));
+        }
+
+        protected abstract Context CreateContext();
+        protected abstract Key GetKey(Context context);
+    }
+
+    private class KeyFileGpgContextFactory(IFileSystem fs, string? password, string keyfile) : GpgContextFactory(fs, password)
+    {
+        protected override Context CreateContext()
+        {
+            var context = new Context();
+            context.SetEngineInfo(Protocol.OpenPGP, null, fs.Directory.CreateTempDir());
+
+            return context;
+        }
+
+        protected override Key GetKey(Context context)
+        {
+            if (!fs.File.Exists(keyfile))
+            {
+                throw new FileNotFoundException($"File or key {keyfile} not found");
+            }
+
+            using var keyStream = fs.File.Open(keyfile, FileMode.Open, FileAccess.Read);
+            using var keyFileData = new GpgmeStreamData(keyStream);
+
+            var importResult = context.KeyStore.Import(keyFileData);
+            if (importResult.Imports == null)
+            {
+                throw new IOException($"Unable to import key {keyfile}");
+            }
+
+            if (importResult.Imports.Result != 0)
+            {
+                throw new IOException($"Unable to import key {keyfile}: {importResult.Imports.Result}");
+            }
+
+            return context.KeyStore.GetKey(importResult.Imports.Fpr, false);
+        }
+    }
+
+    private class KeyStoreGpgContextFactory(IFileSystem fs, string? password, string keyId) : GpgContextFactory(fs, password)
+    {
+        protected override Context CreateContext()
+        {
+            var context = new Context();
+            context.SetEngineInfo(Protocol.OpenPGP, null, null);
+
+            return context;
+        }
+
+        protected override Key GetKey(Context context)
+        {
+            return context.KeyStore
+                .GetKeyList("", false)
+                .FirstOrDefault(k => k.Fingerprint == keyId) ?? throw new Libgpgme.KeyNotFoundException($"Key with id {keyId} not found.");
         }
     }
 
     private readonly ILogger _logger;
     private readonly IFileSystem _fs;
-    private readonly Func<Context, Key> _getKey;
-    private readonly string? _password;
-
-    private static Key KeyFromKeyFile(IFileSystem fs, Context context, string keyfile)
-    {
-        if (!fs.File.Exists(keyfile))
-        {
-            throw new FileNotFoundException($"File or key {keyfile} not found");
-        }
-
-        using var keyStream = fs.File.Open(keyfile, FileMode.Open, FileAccess.Read);
-        using var keyFileData = new GpgmeStreamData(keyStream);
-
-        var importResult = context.KeyStore.Import(keyFileData);
-        if (importResult.Imports == null)
-        {
-            throw new IOException($"Unable to import key {keyfile}");
-        }
-
-        if (importResult.Imports.Result != 0)
-        {
-            throw new IOException($"Unable to import key {keyfile}: {importResult.Imports.Result}");
-        }
-
-        return context.KeyStore.GetKey(importResult.Imports.Fpr, false);
-    }
-
-    private static Key KeyFromStore(Context context, string keyId)
-    {
-        return context.KeyStore
-            .GetKeyList("", false)
-            .FirstOrDefault(k => k.Fingerprint == keyId) ?? throw new Libgpgme.KeyNotFoundException($"Key with id {keyId} not found.");
-    }
-
-    private GpgContext PrepareContext()
-    {
-        var context = new Context();
-
-        if (context.Protocol != Protocol.OpenPGP)
-        {
-            context.SetEngineInfo(Protocol.OpenPGP, null, _fs.Directory.CreateTempDir());
-        }
-
-        if (!string.IsNullOrEmpty(_password))
-        {
-            // ReSharper disable once RedundantAssignment
-            context.SetPassphraseFunction((Context _, PassphraseInfo _, ref char[] passphrase) =>
-            {
-                passphrase = _password.ToCharArray();
-                return PassphraseResult.Success;
-            });
-        }
-
-        context.Armor = false;
-        
-        return new GpgContext(_fs, context, _getKey(context));
-    }
+    private readonly GpgContextFactory _contextFactory;
 
     public static GpgEncryptionManager CreateWithKeyFile(ILogger logger, IFileSystem fs, string keyFile, string? password = null)
-        => new(logger, fs, ctx => KeyFromKeyFile(fs, ctx, keyFile), password);
+        => new(logger, fs, new KeyFileGpgContextFactory(fs, password, keyFile));
 
     public static GpgEncryptionManager CreateWithKeyId(ILogger logger, IFileSystem fs, string keyId, string? password = null)
-        => new(logger, fs, ctx => KeyFromStore(ctx, keyId), password);
+        => new(logger, fs, new KeyStoreGpgContextFactory(fs, password, keyId));
 
-    private GpgEncryptionManager(ILogger logger, IFileSystem fs, Func<Context, Key> getKey, string? password)
+    private GpgEncryptionManager(ILogger logger, IFileSystem fs, GpgContextFactory contextFactory)
     {
         _logger = logger.ForContextShort<GpgEncryptionManager>();
         _fs = fs;
-        _getKey = getKey;
-        _password = password;
+        _contextFactory = contextFactory;
 
         try
         {
@@ -117,7 +141,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
     public void Encrypt(Stream src, Stream dst, CancellationToken cancellationToken)
     {
-        using var gpgContext = PrepareContext();
+        using var gpgContext = _contextFactory.Create();
 
         var srcStreamWrapper = new ReaderStreamWrapper(src);
         var dstStreamWrapper = new WriterStreamWrapper(dst);
@@ -128,7 +152,7 @@ public class GpgEncryptionManager : IEncryptionManager
         _logger.Information("Encryption of the stream...");
         try
         {
-            gpgContext.Context.Encrypt(new[] { gpgContext.Key }, EncryptFlags.AlwaysTrust, srcStream, dstStream);
+            gpgContext.Context.Encrypt([gpgContext.Key], EncryptFlags.AlwaysTrust, srcStream, dstStream);
         }
         catch (Exception e)
         {
@@ -158,7 +182,7 @@ public class GpgEncryptionManager : IEncryptionManager
 
     public void Decrypt(string src, string dst, CancellationToken cancellationToken)
     {
-        using var gpgContext = PrepareContext();
+        using var gpgContext = _contextFactory.Create();
 
         using var srcRawStream = _fs.File.Open(src, FileMode.Open, FileAccess.Read);
         using var srcStream = new GpgmeStreamData(srcRawStream);
