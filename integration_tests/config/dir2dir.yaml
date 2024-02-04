@@ -1,0 +1,24 @@
+source:
+  type: directory
+  path: /tmp/integration_tests/dir2dir_source
+
+actions:
+  - type: filter
+    exclude:
+      - ^/tmp/integration_tests/dir2dir_source/exclude_file_.*
+      - ^/tmp/integration_tests/dir2dir_source/exclude_dir_.*/.*
+
+  - type: compress
+    engine: tar
+    changedir: /tmp/integration_tests/dir2dir_source
+    compressor: gzip
+    options:
+      level: 9
+
+  - type: rename
+    template: "dir2dir.{ext}"
+
+target:
+  type: dir
+  path: /tmp/integration_tests/dir2dir_target
+  overwrite: true

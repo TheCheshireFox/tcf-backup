@@ -1,0 +1,25 @@
+source:
+  type: btrfs
+  subvolume: /tmp/integration_tests/btrfs2dir_source/subvolumes/root
+  snapshotdir: /tmp/integration_tests/btrfs2dir_source/subvolumes/snapshots/
+
+actions:
+  - type: filter
+    exclude:
+      - ^/tmp/integration_tests/btrfs2dir_source/subvolumes/snapshots/root/exclude_file_.*
+      - ^/tmp/integration_tests/btrfs2dir_source/subvolumes/snapshots/root/exclude_dir_.*/.*
+
+  - type: compress
+    engine: tar
+    changedir: /tmp/integration_tests/btrfs2dir_source/subvolumes/snapshots/root
+    compressor: gzip
+    options:
+      level: 9
+
+  - type: rename
+    template: "btrfs2dir.{ext}"
+
+target:
+  type: dir
+  path: /tmp/integration_tests/btrfs2dir_target
+  overwrite: true
