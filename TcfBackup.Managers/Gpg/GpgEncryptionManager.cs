@@ -152,7 +152,9 @@ public class GpgEncryptionManager : IEncryptionManager
         _logger.Information("Encryption of the stream...");
         try
         {
-            gpgContext.Context.Encrypt([gpgContext.Key], EncryptFlags.AlwaysTrust, srcStream, dstStream);
+            gpgContext.Context
+                .Encrypt([gpgContext.Key], EncryptFlags.AlwaysTrust, srcStream, dstStream)
+                .ThrowOnError();
         }
         catch (Exception e)
         {
