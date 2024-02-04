@@ -52,9 +52,14 @@ public class ConfigurationProvider : IConfigurationProvider
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Handled by DynamicallyAccessedMembers")]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2067", Justification = "Handled by DynamicallyAccessedMembers, bad case of the Dictionary<object, Type>")]
     private static object Get([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)]Type type,
-        IConfiguration configuration, ConfigurationState state)
+        IConfigurationSection configuration, ConfigurationState state)
     {
         var obj = configuration.Get(type);
+        if (obj == null)
+        {
+            throw new Exception($"No configuration with {type} in {configuration.Path}");
+        }
+        
         var props = type.GetProperties().ToDictionary(p => p.Name, p => p);
         
         foreach (var prop in props.Values)
